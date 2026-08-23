@@ -20,66 +20,166 @@ npm install
 npm run start:dev
 ```
 
-## Cấu trúc database
+API chạy tại `http://localhost:3000/api`.
 
-| File / thư mục | Vai trò |
-| --- | --- |
-| `src/db/schema.ts` | Định nghĩa bảng (source of truth) |
-| `src/db/index.ts` | Client Drizzle dùng trong NestJS |
-| `drizzle.config.ts` | Config cho drizzle-kit |
-| `drizzle/` | SQL migration do `generate` tạo ra (commit vào Git) |
-
-## Scripts Drizzle
-
-| Script | Lệnh gốc | Khi nào dùng |
-| --- | --- | --- |
-| `npm run db:generate` | `drizzle-kit generate` | Sau khi sửa `schema.ts` — tạo file SQL migration |
-| `npm run db:migrate` | `drizzle-kit migrate` | Apply các migration chưa chạy lên database |
-| `npm run db:push` | `drizzle-kit push` | Sync schema thẳng lên DB (chỉ local / prototype) |
-| `npm run db:studio` | `drizzle-kit studio` | Mở GUI xem / sửa data |
-| `npm run db:pull` | `drizzle-kit pull` | Introspect DB có sẵn → schema TypeScript |
-| `npm run db:check` | `drizzle-kit check` | Kiểm tra conflict giữa các migration |
+Swagger UI: **http://localhost:3000/api/docs**
 
 ---
 
-## Mỗi lần update database — làm theo thứ tự này
+## Cấu trúc dự án
 
-Quy trình chuẩn (team / staging / production): **sửa schema → generate → review SQL → migrate → commit**.
+```text
+src/
+├── main.ts                    # Bootstrap app, global prefix /api
+├── app.module.ts              # Root module — import feature modules ở đây
+├── common/                    # Shared code dùng chung
+│   ├── constants/             # Injection tokens, constants
+│   └── types/                 # Shared TypeScript types
+├── database/                  # Database layer
+│   ├── database.module.ts     # Global Drizzle module (DI)
+│   ├── database.provider.ts
+│   └── schema/                # Drizzle schema (1 file / bảng)
+│       ├── index.ts
+│       └── users.schema.ts
+└── modules/                   # Feature modules (theo domain)
+    ├── health/                # Health check
+    └── users/                 # Ví dụ module CRUD hoàn chỉnh
+        ├── users.module.ts
+        ├── users.controller.ts
+        ├── users.service.ts
+        ├── dto/
+        └── index.ts
+
+templates/feature-module/      # Template tạo module mới
+scripts/generate-module.mjs    # Script generate module từ template
+drizzle/                       # SQL migrations
+```
+
+### Quy ước mỗi feature module
+
+| File | Vai trò |
+| --- | --- |
+| `*.module.ts` | Đăng ký controller, service |
+| `*.controller.ts` | HTTP routes (`/api/<feature>`) |
+| `*.service.ts` | Business logic + truy vấn DB |
+| `dto/` | Input/output types cho API |
+| `index.ts` | Public exports của module |
+
+Schema DB đặt riêng tại `src/database/schema/<feature>.schema.ts`, export qua `index.ts`.
+
+---
+
+## Tạo module tính năng mới
+
+Dùng script generate từ template:
+
+```bash
+npm run generate:module transactions
+```
+
+Script sẽ tạo:
+
+- `src/modules/transactions/` — module, controller, service, DTOs
+- `src/database/schema/transactions.schema.ts` — schema mẫu
+
+Sau đó:
+
+1. Sửa schema trong `src/database/schema/transactions.schema.ts`
+2. Sửa DTOs trong `src/modules/transactions/dto/`
+3. Import module vào `src/app.module.ts`:
+
+```ts
+import { TransactionsModule } from './modules/transactions/transactions.module';
+
+@Module({
+  imports: [DatabaseModule, HealthModule, UsersModule, TransactionsModule],
+})
+export class AppModule {}
+```
+
+4. Chạy migration:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+### Module gợi ý cho MoneyTalk
+
+| Module | Route | Mô tả |
+| --- | --- | --- |
+| `users` | `/api/users` | Quản lý user (đã có) |
+| `auth` | `/api/auth` | Đăng nhập / đăng ký |
+| `accounts` | `/api/accounts` | Ví / tài khoản |
+| `transactions` | `/api/transactions` | Thu chi |
+| `categories` | `/api/categories` | Danh mục |
+| `budgets` | `/api/budgets` | Ngân sách |
+
+---
+
+## API endpoints hiện có
+
+| Method | Route | Auth | Mô tả |
+| --- | --- | --- | --- |
+| GET | `/api/health` | Public | Health check |
+| POST | `/api/auth/register` | Public | Đăng ký → trả JWT |
+| POST | `/api/auth/login` | Public | Đăng nhập → trả JWT |
+| GET | `/api/auth/me` | Bearer | Profile hiện tại |
+| GET | `/api/users` | Admin | Danh sách users |
+| GET | `/api/users/:id` | Self / Admin | Chi tiết user |
+| PATCH | `/api/users/:id` | Self / Admin | Cập nhật (role chỉ admin) |
+| DELETE | `/api/users/:id` | Admin | Xóa user |
+| GET | `/api/stats/overview` | Admin | Thống kê |
+
+### Dùng JWT trên Swagger
+
+1. `POST /api/auth/login` (hoặc register) → copy `accessToken`
+2. Bấm **Authorize** → dán token (hoặc `Bearer <token>`)
+3. Gọi các API còn lại
+
+---
+
+## Database & Drizzle
+
+| File / thư mục | Vai trò |
+| --- | --- |
+| `src/database/schema/` | Định nghĩa bảng (source of truth) |
+| `src/database/database.module.ts` | Inject Drizzle vào NestJS |
+| `drizzle.config.ts` | Config cho drizzle-kit |
+| `drizzle/` | SQL migration (commit vào Git) |
+
+### Scripts Drizzle
+
+| Script | Khi nào dùng |
+| --- | --- |
+| `npm run db:generate` | Sau khi sửa schema — tạo file SQL migration |
+| `npm run db:migrate` | Apply migration lên database |
+| `npm run db:push` | Sync schema thẳng lên DB (chỉ local) |
+| `npm run db:studio` | Mở GUI xem / sửa data |
+| `npm run db:pull` | Introspect DB → schema TypeScript |
+| `npm run db:check` | Kiểm tra conflict migration |
+
+---
+
+## Mỗi lần update database
+
+Quy trình chuẩn: **sửa schema → generate → review SQL → migrate → commit**.
 
 ### Bước 1 — Sửa schema
 
-Chỉnh `src/db/schema.ts` (thêm/sửa/xóa bảng, cột, index, …).
-
-Ví dụ thêm cột:
-
-```ts
-export const usersTable = pgTable('users', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  age: integer().notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
-  // cột mới
-  phone: varchar({ length: 20 }),
-});
-```
+Chỉnh file trong `src/database/schema/` (ví dụ `users.schema.ts`).
 
 ### Bước 2 — Generate migration
 
 ```bash
 npm run db:generate
-```
-
-Drizzle so sánh schema hiện tại với snapshot trước đó và tạo folder SQL trong `drizzle/`.
-
-Có thể đặt tên migration:
-
-```bash
+# hoặc đặt tên:
 npx drizzle-kit generate --name add_users_phone
 ```
 
 ### Bước 3 — Review file SQL
 
-Mở file `.sql` vừa tạo trong `drizzle/`, kiểm tra câu lệnh có đúng ý không (đặc biệt khi rename / drop cột).
+Mở file `.sql` trong `drizzle/`, kiểm tra câu lệnh.
 
 ### Bước 4 — Apply lên database
 
@@ -87,70 +187,27 @@ Mở file `.sql` vừa tạo trong `drizzle/`, kiểm tra câu lệnh có đúng
 npm run db:migrate
 ```
 
-Chạy trên môi trường nào thì `DATABASE_URL` trong `.env` phải trỏ đúng DB đó.
-
 ### Bước 5 — Commit
 
-Commit **cả** thay đổi schema **và** folder migration trong `drizzle/`:
-
 ```bash
-git add src/db/schema.ts drizzle/
+git add src/database/schema/ drizzle/
 git commit -m "db: add users.phone"
 ```
 
-Người khác (hoặc CI/server) chỉ cần:
-
-```bash
-npm run db:migrate
-```
-
 ---
 
-## Lần đầu setup database trên máy mới
-
-1. Tạo DB PostgreSQL và điền `DATABASE_URL` trong `.env`
-2. Cài dependency: `npm install`
-3. Apply toàn bộ migration:
-
-```bash
-npm run db:migrate
-```
-
-4. (Tuỳ chọn) mở Studio kiểm tra:
-
-```bash
-npm run db:studio
-```
-
----
-
-## Dev nhanh với `db:push` (không dùng production)
-
-Khi đang prototype local và **không cần** lịch sử migration:
-
-```bash
-# Sửa schema.ts rồi:
-npm run db:push
-```
-
-Schema được push thẳng lên DB, **không** tạo file trong `drizzle/`.
-
-> Không dùng `db:push` cho staging/production. Production luôn dùng `generate` + `migrate`.
-
----
-
-## Checklist nhanh mỗi lần đổi schema
+## Checklist nhanh
 
 ```text
-[ ] 1. Sửa src/db/schema.ts
+[ ] 1. Sửa src/database/schema/
 [ ] 2. npm run db:generate
-[ ] 3. Review file SQL trong drizzle/
+[ ] 3. Review SQL trong drizzle/
 [ ] 4. npm run db:migrate
 [ ] 5. Commit schema + drizzle/
 ```
 
 ## Lưu ý
 
-- `DATABASE_URL` không commit lên Git (chỉ có trong `.env` / secret CI).
-- Đừng sửa tay file SQL migration đã được apply trên shared DB; tạo migration mới nếu cần sửa tiếp.
-- Rename cột/bảng: Drizzle có thể hỏi confirm trong lúc `generate` — đọc kỹ prompt trước khi chọn.
+- `DATABASE_URL` không commit lên Git.
+- Không dùng `db:push` cho staging/production.
+- Đừng sửa tay migration đã apply trên shared DB.

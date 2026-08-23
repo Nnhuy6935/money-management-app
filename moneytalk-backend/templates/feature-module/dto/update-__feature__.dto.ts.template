@@ -1,0 +1,6 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+
+export class Update__Feature__Dto {
+  @ApiPropertyOptional({ example: 'Example', description: 'TODO: define field' })
+  name?: string;
+}

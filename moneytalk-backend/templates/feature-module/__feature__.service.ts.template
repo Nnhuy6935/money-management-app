@@ -1,0 +1,61 @@
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
+import { DRIZZLE } from '../../common/constants/injection-tokens';
+import type { Database } from '../../database/database.types';
+import { __feature__Table } from '../../database/schema';
+import { Create__Feature__Dto } from './dto/create-__feature__.dto';
+import { Update__Feature__Dto } from './dto/update-__feature__.dto';
+
+@Injectable()
+export class __Feature__Service {
+  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+
+  findAll() {
+    return this.db.select().from(__feature__Table);
+  }
+
+  async findOne(id: number) {
+    const [item] = await this.db
+      .select()
+      .from(__feature__Table)
+      .where(eq(__feature__Table.id, id));
+
+    if (!item) {
+      throw new NotFoundException(`__Feature__ #${id} not found`);
+    }
+
+    return item;
+  }
+
+  async create(dto: Create__Feature__Dto) {
+    const [item] = await this.db
+      .insert(__feature__Table)
+      .values(dto)
+      .returning();
+
+    return item;
+  }
+
+  async update(id: number, dto: Update__Feature__Dto) {
+    await this.findOne(id);
+
+    const [item] = await this.db
+      .update(__feature__Table)
+      .set({ ...dto, updatedAt: new Date() })
+      .where(eq(__feature__Table.id, id))
+      .returning();
+
+    return item;
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+
+    const [item] = await this.db
+      .delete(__feature__Table)
+      .where(eq(__feature__Table.id, id))
+      .returning();
+
+    return item;
+  }
+}

@@ -27,9 +27,16 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
+      // NestJS + class-validator/swagger decorators thường không resolve type đủ
+      // → no-unsafe-call báo đỏ giả trên mọi @IsOptional/@IsString/...
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      '@typescript-eslint/no-floating-promises': 'warn',
+      // Prettier chỉ cảnh báo (vàng), không hiện như lỗi đỏ
+      'prettier/prettier': ['warn', { endOfLine: 'auto' }],
     },
   },
 );

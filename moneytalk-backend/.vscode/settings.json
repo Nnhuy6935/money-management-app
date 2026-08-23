@@ -1,0 +1,17 @@
+{
+  "eslint.rules.customizations": [
+    {
+      "rule": "prettier/*",
+      "severity": "warn"
+    },
+    {
+      "rule": "@typescript-eslint/no-unsafe-*",
+      "severity": "warn"
+    },
+    {
+      "rule": "@typescript-eslint/no-floating-promises",
+      "severity": "warn"
+    }
+  ],
+  "eslint.validate": ["javascript", "typescript"]
+}

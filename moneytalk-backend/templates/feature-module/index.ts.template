@@ -1,0 +1,2 @@
+export * from './__feature__.module';
+export * from './__feature__.service';
