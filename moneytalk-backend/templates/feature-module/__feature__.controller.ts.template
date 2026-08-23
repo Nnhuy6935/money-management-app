@@ -1,0 +1,71 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Create__Feature__Dto } from './dto/create-__feature__.dto';
+import { Update__Feature__Dto } from './dto/update-__feature__.dto';
+import { __Feature__Service } from './__feature__.service';
+
+@ApiTags('__FEATURE_KEBAB__')
+@Controller('__FEATURE_KEBAB__')
+export class __Feature__Controller {
+  constructor(private readonly __feature__Service: __Feature__Service) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách __FEATURE_KEBAB__' })
+  @ApiOkResponse({ description: 'Danh sách __FEATURE_KEBAB__' })
+  findAll() {
+    return this.__feature__Service.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy chi tiết __FEATURE_KEBAB__ theo ID' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiOkResponse({ description: 'Chi tiết __FEATURE_KEBAB__' })
+  @ApiNotFoundResponse({ description: '__Feature__ không tồn tại' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.__feature__Service.findOne(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Tạo __FEATURE_KEBAB__ mới' })
+  @ApiCreatedResponse({ description: '__Feature__ đã được tạo' })
+  create(@Body() dto: Create__Feature__Dto) {
+    return this.__feature__Service.create(dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Cập nhật __FEATURE_KEBAB__' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiOkResponse({ description: '__Feature__ đã được cập nhật' })
+  @ApiNotFoundResponse({ description: '__Feature__ không tồn tại' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Update__Feature__Dto,
+  ) {
+    return this.__feature__Service.update(id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Xóa __FEATURE_KEBAB__' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiOkResponse({ description: '__Feature__ đã được xóa' })
+  @ApiNotFoundResponse({ description: '__Feature__ không tồn tại' })
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.__feature__Service.remove(id);
+  }
+}
