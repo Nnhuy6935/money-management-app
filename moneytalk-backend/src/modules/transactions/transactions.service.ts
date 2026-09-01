@@ -1,11 +1,6 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, gte, lte, SQL } from 'drizzle-orm';
+import { AppException } from '../../common/exceptions';
 import { DRIZZLE } from '../../common/constants/injection-tokens';
 import { UserRole } from '../../common/constants/roles';
 import {
@@ -35,10 +30,11 @@ export class TransactionsService {
     const typeId = dto.typeId ?? null;
 
     if (typeId !== null) {
-      const type = await this.transactionTypesService.findById(typeId);
-      if (!type) {
-        throw new BadRequestException('Loại giao dịch không tồn tại');
-      }
+      await this.transactionTypesService.assertTypeAllowed(
+        typeId,
+        dto.flow,
+        userId,
+      );
     }
 
     const upload = await this.uploadsService.resolveUploadedImage(
@@ -94,20 +90,25 @@ export class TransactionsService {
 
     const row = rows[0];
     if (!row) {
-      throw new NotFoundException(`Giao dịch #${id} không tồn tại`);
+      throw AppException.transactionNotFound(id);
     }
 
     return this.toResponse(row.transaction, row.type);
   }
 
   async update(userId: number, id: number, dto: UpdateTransactionDto) {
-    await this.findOneForUser(userId, id);
+    const current = await this.requireOwnedTransaction(userId, id);
 
-    if (dto.typeId !== undefined && dto.typeId !== null) {
-      const type = await this.transactionTypesService.findById(dto.typeId);
-      if (!type) {
-        throw new BadRequestException('Loại giao dịch không tồn tại');
-      }
+    const nextFlow = dto.flow ?? current.flow;
+    const nextTypeId =
+      dto.typeId !== undefined ? dto.typeId : current.typeId;
+
+    if (nextTypeId !== null) {
+      await this.transactionTypesService.assertTypeAllowed(
+        nextTypeId,
+        nextFlow,
+        userId,
+      );
     }
 
     const [updated] = await this.db
@@ -150,7 +151,7 @@ export class TransactionsService {
     query: ListTransactionsQueryDto,
   ) {
     if (requesterRole !== UserRole.ADMIN && requesterId !== targetUserId) {
-      throw new ForbiddenException('Bạn không có quyền xem giao dịch này');
+      throw AppException.transactionAccessDenied();
     }
 
     const page = query.page ?? 1;
@@ -176,7 +177,7 @@ export class TransactionsService {
       filters.push(gte(transactionsTable.createdAt, start));
       filters.push(lte(transactionsTable.createdAt, end));
     } else if (query.from || query.to) {
-      throw new BadRequestException('Cần truyền cả `from` và `to`');
+      throw AppException.transactionDateRangeRequired();
     }
 
     const whereClause = and(...filters);
@@ -213,6 +214,21 @@ export class TransactionsService {
     };
   }
 
+  private async requireOwnedTransaction(userId: number, id: number) {
+    const [current] = await this.db
+      .select()
+      .from(transactionsTable)
+      .where(
+        and(eq(transactionsTable.id, id), eq(transactionsTable.userId, userId)),
+      );
+
+    if (!current) {
+      throw AppException.transactionNotFound(id);
+    }
+
+    return current;
+  }
+
   private toResponse(
     transaction: typeof transactionsTable.$inferSelect,
     type: typeof transactionTypesTable.$inferSelect | null,
@@ -227,6 +243,8 @@ export class TransactionsService {
             id: type.id,
             code: type.code,
             name: type.name,
+            flow: type.flow,
+            isDefault: type.isDefault,
           }
         : null,
       imageKey: transaction.imageKey,

@@ -10,6 +10,15 @@ export class TransactionTypeResponseDto {
 
   @ApiProperty({ example: 'Food' })
   name: string;
+
+  @ApiProperty({ enum: TransactionFlow, example: TransactionFlow.EXPENSE })
+  flow: TransactionFlow;
+
+  @ApiProperty({
+    example: true,
+    description: 'Loại hệ thống (seed) hay do user tạo',
+  })
+  isDefault: boolean;
 }
 
 export class TransactionResponseDto {

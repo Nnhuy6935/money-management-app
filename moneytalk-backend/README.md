@@ -130,7 +130,8 @@ npm run db:migrate
 | PATCH | `/api/users/:id` | Self / Admin | Cập nhật (role chỉ admin) |
 | DELETE | `/api/users/:id` | Admin | Xóa user |
 | GET | `/api/stats/overview` | Admin | Thống kê |
-| GET | `/api/transaction-types` | Bearer | Loại giao dịch |
+| GET | `/api/transaction-types` | Bearer | Loại giao dịch (default + custom của user) |
+| POST | `/api/transaction-types` | Bearer | Thêm loại giao dịch custom |
 | POST | `/api/uploads/image` | Bearer | Upload ảnh qua backend (khuyên dùng) |
 | POST | `/api/uploads/presign` | Bearer | Lấy presigned URL (client PUT trực tiếp) |
 | POST | `/api/transactions` | Bearer | Tạo giao dịch (truyền `imageUrl`) |
@@ -308,11 +309,31 @@ Test: Swagger → Authorize → `POST /api/uploads/presign` → PUT file lên `u
 
 ### Loại giao dịch (`transaction_types`)
 
-Seed sẵn: `food`, `shopping`, `home`, `transport`, `entertainment`, `health`, `education`, `other`
+Mỗi loại thuộc **expense** hoặc **income**, có `isDefault` (hệ thống) hoặc custom (user tạo).
+
+**Expense mặc định:** `food`, `shopping`, `transport`, `entertainment`, `health`, `education`, `other`
+
+**Income mặc định:** `salary`, `gift`
 
 ```http
-GET /api/transaction-types
+GET /api/transaction-types?flow=expense
+GET /api/transaction-types?flow=income
 ```
+
+**Thêm loại custom:**
+
+```http
+POST /api/transaction-types
+Content-Type: application/json
+
+{
+  "name": "Freelance",
+  "flow": "income",
+  "code": "freelance"
+}
+```
+
+`code` tuỳ chọn — bỏ trống sẽ tự sinh từ `name`. `typeId` khi tạo giao dịch phải **khớp `flow`**.
 
 ### Upload ảnh
 
