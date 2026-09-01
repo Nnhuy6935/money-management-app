@@ -7,7 +7,7 @@ import {
 import { AppErrorMessages } from './app-error-messages';
 
 export class AppException {
-  static transactionNotFound(id: number) {
+  static transactionNotFound(id: string) {
     return new NotFoundException(AppErrorMessages.transaction.notFound(id));
   }
 
@@ -45,5 +45,37 @@ export class AppException {
     return new ConflictException(
       AppErrorMessages.transactionType.duplicate(code, flow),
     );
+  }
+
+  static friendCannotAddSelf() {
+    return new BadRequestException(AppErrorMessages.friend.cannotAddSelf);
+  }
+
+  static friendUserNotFound(id: string) {
+    return new NotFoundException(AppErrorMessages.friend.userNotFound(id));
+  }
+
+  static friendRequestNotFound(id: string) {
+    return new NotFoundException(AppErrorMessages.friend.requestNotFound(id));
+  }
+
+  static friendAlreadyFriends() {
+    return new ConflictException(AppErrorMessages.friend.alreadyFriends);
+  }
+
+  static friendRequestAlreadySent() {
+    return new ConflictException(AppErrorMessages.friend.requestAlreadySent);
+  }
+
+  static friendRequestAlreadyPending() {
+    return new ConflictException(AppErrorMessages.friend.requestAlreadyPending);
+  }
+
+  static friendNotFriends() {
+    return new BadRequestException(AppErrorMessages.friend.notFriends);
+  }
+
+  static friendRequestAccessDenied() {
+    return new ForbiddenException(AppErrorMessages.friend.requestAccessDenied);
   }
 }

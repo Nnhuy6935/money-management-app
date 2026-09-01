@@ -1,13 +1,13 @@
 import { UserRole } from '../constants/roles';
 
 export type JwtPayload = {
-  sub: number;
+  sub: string;
   email: string;
   role: UserRole;
 };
 
 export type AuthUser = {
-  id: number;
+  id: string;
   email: string;
   role: UserRole;
 };

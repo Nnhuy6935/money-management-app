@@ -54,7 +54,7 @@ export class AuthService {
     return this.buildAuthResponse(publicUser);
   }
 
-  async me(userId: number) {
+  async me(userId: string) {
     return this.usersService.findOne(userId);
   }
 

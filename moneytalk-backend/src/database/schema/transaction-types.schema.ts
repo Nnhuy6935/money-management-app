@@ -1,10 +1,10 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  integer,
   pgTable,
   timestamp,
   uniqueIndex,
+  uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { transactionFlowEnum } from './transaction.constants';
@@ -13,8 +13,8 @@ import { usersTable } from './users.schema';
 export const transactionTypesTable = pgTable(
   'transaction_types',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer('user_id').references(() => usersTable.id, {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => usersTable.id, {
       onDelete: 'cascade',
     }),
     code: varchar({ length: 50 }).notNull(),

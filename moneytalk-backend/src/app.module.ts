@@ -4,6 +4,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { FriendsModule } from './modules/friends/friends.module';
 import { HealthModule } from './modules/health/health.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
@@ -16,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     HealthModule,
     UsersModule,
+    FriendsModule,
     StatsModule,
     UploadsModule,
     TransactionsModule,

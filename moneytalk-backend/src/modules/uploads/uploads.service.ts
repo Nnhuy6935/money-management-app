@@ -54,7 +54,7 @@ export class UploadsService implements OnModuleInit {
   }
 
   async uploadImage(
-    userId: number,
+    userId: string,
     file: Express.Multer.File,
   ): Promise<UploadedImage> {
     this.assertConfigured();
@@ -89,7 +89,7 @@ export class UploadsService implements OnModuleInit {
   }
 
   async createPresignedUpload(
-    userId: number,
+    userId: string,
     contentType: (typeof ALLOWED_IMAGE_MIME_TYPES)[number],
   ) {
     this.assertConfigured();
@@ -125,7 +125,7 @@ export class UploadsService implements OnModuleInit {
     }
   }
 
-  async deleteObject(userId: number, key: string) {
+  async deleteObject(userId: string, key: string) {
     this.assertConfigured();
 
     if (!key?.startsWith(`transactions/${userId}/`)) {
@@ -148,7 +148,7 @@ export class UploadsService implements OnModuleInit {
   }
 
   async resolveUploadedImage(
-    userId: number,
+    userId: string,
     imageUrl: string,
   ): Promise<UploadedImage> {
     this.assertConfigured();

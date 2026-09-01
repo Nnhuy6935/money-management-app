@@ -5,10 +5,12 @@ import {
   IsEnum,
   IsInt,
   IsOptional,
+  IsUUID,
   Max,
   Min,
 } from 'class-validator';
 import { TransactionFlow } from '../../../common/constants/transaction.constants';
+import { UUID_EXAMPLE } from '../../../common/constants/swagger.constants';
 
 export class ListTransactionsQueryDto {
   @ApiPropertyOptional({
@@ -40,12 +42,14 @@ export class ListTransactionsQueryDto {
   @IsEnum(TransactionFlow)
   flow?: TransactionFlow;
 
-  @ApiPropertyOptional({ example: 1, description: 'Lọc theo loại (type id)' })
+  @ApiPropertyOptional({
+    example: UUID_EXAMPLE,
+    format: 'uuid',
+    description: 'Lọc theo loại (type id)',
+  })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  typeId?: number;
+  @IsUUID()
+  typeId?: string;
 
   @ApiPropertyOptional({ example: 1, default: 1 })
   @IsOptional()

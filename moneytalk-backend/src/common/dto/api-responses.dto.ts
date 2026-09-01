@@ -1,9 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '../../common/constants/roles';
+import { UUID_EXAMPLE } from '../../common/constants/swagger.constants';
 
 export class UserResponseDto {
-  @ApiProperty({ example: 1 })
-  id: number;
+  @ApiProperty({ example: UUID_EXAMPLE, format: 'uuid' })
+  id: string;
 
   @ApiPropertyOptional({ example: 'Nguyen Van A', nullable: true })
   name: string | null;

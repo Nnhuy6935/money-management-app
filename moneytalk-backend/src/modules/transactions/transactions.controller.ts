@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -21,6 +21,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { UserRole } from '../../common/constants/roles';
+import { UUID_EXAMPLE } from '../../common/constants/swagger.constants';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthUser } from '../../common/types/auth.types';
@@ -68,11 +69,11 @@ export class TransactionsController {
   @Get('user/:userId')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Danh sách giao dịch theo user (admin)' })
-  @ApiParam({ name: 'userId', type: Number })
+  @ApiParam({ name: 'userId', type: String, format: 'uuid' })
   @ApiOkResponse({ type: PaginatedTransactionsResponseDto })
   @ApiForbiddenResponse()
   findByUser(
-    @Param('userId', ParseIntPipe) userId: number,
+    @Param('userId', ParseUUIDPipe) userId: string,
     @Query() query: ListTransactionsQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
@@ -86,11 +87,11 @@ export class TransactionsController {
 
   @Get('me/:id')
   @ApiOperation({ summary: 'Chi tiết giao dịch của tôi' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiOkResponse({ type: TransactionResponseDto })
   @ApiNotFoundResponse()
   findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthUser,
   ) {
     return this.transactionsService.findOneForUser(user.id, id);
@@ -98,11 +99,11 @@ export class TransactionsController {
 
   @Patch('me/:id')
   @ApiOperation({ summary: 'Cập nhật giao dịch (không đổi ảnh)' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiOkResponse({ type: TransactionResponseDto })
   @ApiNotFoundResponse()
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTransactionDto,
     @CurrentUser() user: AuthUser,
   ) {
@@ -111,12 +112,12 @@ export class TransactionsController {
 
   @Delete('me/:id')
   @ApiOperation({ summary: 'Xóa giao dịch + ảnh trên R2' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiOkResponse({
-    schema: { example: { deleted: true, id: 1 } },
+    schema: { example: { deleted: true, id: UUID_EXAMPLE } },
   })
   @ApiNotFoundResponse()
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
     return this.transactionsService.remove(user.id, id);
   }
 }

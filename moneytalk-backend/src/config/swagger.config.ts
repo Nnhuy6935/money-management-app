@@ -5,6 +5,10 @@ import {
   StatsOverviewResponseDto,
   UserResponseDto,
 } from '../common/dto/api-responses.dto';
+import {
+  FriendRequestResponseDto,
+  FriendResponseDto,
+} from '../modules/friends/dto/friend-response.dto';
 import { PresignUploadResponseDto } from '../modules/uploads/dto/presign-upload-response.dto';
 import { UploadImageResponseDto } from '../modules/uploads/dto/upload-image-response.dto';
 import {
@@ -31,6 +35,7 @@ export function setupSwagger(app: INestApplication) {
     .addTag('auth', 'Đăng ký / đăng nhập JWT')
     .addTag('health', 'Health check')
     .addTag('users', 'Quản lý người dùng')
+    .addTag('friends', 'Kết bạn / lời mời')
     .addTag('stats', 'Thống kê (admin)')
     .addTag('uploads', 'Upload ảnh lên R2')
     .addTag('transaction-types', 'Loại giao dịch (food, shopping, …)')
@@ -42,6 +47,8 @@ export function setupSwagger(app: INestApplication) {
       UserResponseDto,
       AuthResponseDto,
       StatsOverviewResponseDto,
+      FriendRequestResponseDto,
+      FriendResponseDto,
       PresignUploadResponseDto,
       UploadImageResponseDto,
       TransactionTypeResponseDto,

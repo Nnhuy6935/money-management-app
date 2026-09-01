@@ -1,9 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TransactionFlow } from '../../../common/constants/transaction.constants';
+import { UUID_EXAMPLE } from '../../../common/constants/swagger.constants';
 
 export class TransactionTypeResponseDto {
-  @ApiProperty({ example: 1 })
-  id: number;
+  @ApiProperty({ example: UUID_EXAMPLE, format: 'uuid' })
+  id: string;
 
   @ApiProperty({ example: 'food' })
   code: string;
@@ -22,8 +23,8 @@ export class TransactionTypeResponseDto {
 }
 
 export class TransactionResponseDto {
-  @ApiProperty({ example: 1 })
-  id: number;
+  @ApiProperty({ example: UUID_EXAMPLE, format: 'uuid' })
+  id: string;
 
   @ApiProperty({ example: '150000.00' })
   amount: string;
@@ -37,10 +38,12 @@ export class TransactionResponseDto {
   @ApiPropertyOptional({ type: TransactionTypeResponseDto, nullable: true })
   type: TransactionTypeResponseDto | null;
 
-  @ApiProperty({ example: 'transactions/1/abc.jpg' })
+  @ApiProperty({ example: 'transactions/uuid/abc.jpg' })
   imageKey: string;
 
-  @ApiProperty({ example: 'https://pub-xxx.r2.dev/transactions/1/abc.jpg' })
+  @ApiProperty({
+    example: 'https://pub-xxx.r2.dev/transactions/uuid/abc.jpg',
+  })
   imageUrl: string;
 
   @ApiProperty({ example: 'image/jpeg' })
