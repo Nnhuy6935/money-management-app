@@ -2,15 +2,16 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
-  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
 import { TransactionFlow } from '../../../common/constants/transaction.constants';
+import { UUID_EXAMPLE } from '../../../common/constants/swagger.constants';
 
 export class UpdateTransactionDto {
   @ApiPropertyOptional({ example: 200000 })
@@ -32,8 +33,9 @@ export class UpdateTransactionDto {
   flow?: TransactionFlow;
 
   @ApiPropertyOptional({
-    example: 2,
+    example: UUID_EXAMPLE,
     nullable: true,
+    format: 'uuid',
     description: 'Gửi null để bỏ loại giao dịch',
   })
   @IsOptional()
@@ -41,8 +43,6 @@ export class UpdateTransactionDto {
     value === '' || value === 'null' ? null : value,
   )
   @ValidateIf((_, value) => value !== null)
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  typeId?: number | null;
+  @IsUUID()
+  typeId?: string | null;
 }

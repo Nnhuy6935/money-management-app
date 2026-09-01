@@ -29,7 +29,7 @@ export class UsersService {
     return users.map((user) => this.toPublicUser(user));
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const [user] = await this.db
       .select()
       .from(usersTable)
@@ -74,7 +74,7 @@ export class UsersService {
     return this.toPublicUser(user);
   }
 
-  async update(id: number, dto: UpdateUserDto) {
+  async update(id: string, dto: UpdateUserDto) {
     await this.findOne(id);
 
     const payload = {
@@ -99,7 +99,7 @@ export class UsersService {
     return this.toPublicUser(user);
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     await this.findOne(id);
 
     const [user] = await this.db

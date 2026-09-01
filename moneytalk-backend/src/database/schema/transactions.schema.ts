@@ -4,6 +4,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { transactionFlowEnum } from './transaction.constants';
@@ -11,11 +12,11 @@ import { transactionTypesTable } from './transaction-types.schema';
 import { usersTable } from './users.schema';
 
 export const transactionsTable = pgTable('transactions', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer('user_id')
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
-  typeId: integer('type_id').references(() => transactionTypesTable.id),
+  typeId: uuid('type_id').references(() => transactionTypesTable.id),
   flow: transactionFlowEnum('flow').notNull(),
   amount: numeric({ precision: 15, scale: 2 }).notNull(),
   description: text(),

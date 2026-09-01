@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +20,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { UserResponseDto } from '../../common/dto/api-responses.dto';
+import { UUID_EXAMPLE } from '../../common/constants/swagger.constants';
 import { UserRole } from '../../common/constants/roles';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -47,12 +48,12 @@ export class UsersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết user (chính mình hoặc admin)' })
-  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiParam({ name: 'id', type: String, format: 'uuid', example: UUID_EXAMPLE })
   @ApiOkResponse({ description: 'Chi tiết user', type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'User không tồn tại' })
   @ApiForbiddenResponse()
   findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthUser,
   ) {
     this.assertCanAccessUser(currentUser, id);
@@ -63,7 +64,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Cập nhật user (name/email cho chính mình; role chỉ admin)',
   })
-  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiParam({ name: 'id', type: String, format: 'uuid', example: UUID_EXAMPLE })
   @ApiOkResponse({
     description: 'User đã được cập nhật',
     type: UserResponseDto,
@@ -71,7 +72,7 @@ export class UsersController {
   @ApiNotFoundResponse({ description: 'User không tồn tại' })
   @ApiForbiddenResponse()
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
     @CurrentUser() currentUser: AuthUser,
   ) {
@@ -87,15 +88,15 @@ export class UsersController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Xóa user (admin)' })
-  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiParam({ name: 'id', type: String, format: 'uuid', example: UUID_EXAMPLE })
   @ApiOkResponse({ description: 'User đã được xóa', type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'User không tồn tại' })
   @ApiForbiddenResponse()
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
   }
 
-  private assertCanAccessUser(currentUser: AuthUser, targetId: number) {
+  private assertCanAccessUser(currentUser: AuthUser, targetId: string) {
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== targetId) {
       throw new ForbiddenException('Bạn không có quyền truy cập user này');
     }

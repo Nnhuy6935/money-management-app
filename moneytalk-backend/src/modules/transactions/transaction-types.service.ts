@@ -28,7 +28,7 @@ export class TransactionTypesService implements OnModuleInit {
     await this.seedDefaults();
   }
 
-  findAll(userId: number, query: ListTransactionTypesQueryDto) {
+  findAll(userId: string, query: ListTransactionTypesQueryDto) {
     const filters: SQL[] = [
       or(
         isNull(transactionTypesTable.userId),
@@ -51,7 +51,7 @@ export class TransactionTypesService implements OnModuleInit {
       );
   }
 
-  async findById(id: number) {
+  async findById(id: string) {
     const [type] = await this.db
       .select()
       .from(transactionTypesTable)
@@ -60,7 +60,7 @@ export class TransactionTypesService implements OnModuleInit {
     return type ?? null;
   }
 
-  async create(userId: number, dto: CreateTransactionTypeDto) {
+  async create(userId: string, dto: CreateTransactionTypeDto) {
     const code = dto.code?.trim() || slugifyCode(dto.name);
 
     const [existing] = await this.db
@@ -93,9 +93,9 @@ export class TransactionTypesService implements OnModuleInit {
   }
 
   async assertTypeAllowed(
-    typeId: number,
+    typeId: string,
     flow: TransactionFlow,
-    userId: number,
+    userId: string,
   ) {
     const type = await this.findById(typeId);
 

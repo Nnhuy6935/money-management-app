@@ -26,7 +26,7 @@ export class TransactionsService {
     private readonly transactionTypesService: TransactionTypesService,
   ) {}
 
-  async create(userId: number, dto: CreateTransactionDto) {
+  async create(userId: string, dto: CreateTransactionDto) {
     const typeId = dto.typeId ?? null;
 
     if (typeId !== null) {
@@ -60,20 +60,20 @@ export class TransactionsService {
     return this.findOneForUser(userId, transaction.id);
   }
 
-  async findMine(userId: number, query: ListTransactionsQueryDto) {
+  async findMine(userId: string, query: ListTransactionsQueryDto) {
     return this.findByUserId(userId, userId, UserRole.USER, query);
   }
 
   async findByUser(
-    requesterId: number,
+    requesterId: string,
     requesterRole: UserRole,
-    targetUserId: number,
+    targetUserId: string,
     query: ListTransactionsQueryDto,
   ) {
     return this.findByUserId(requesterId, targetUserId, requesterRole, query);
   }
 
-  async findOneForUser(userId: number, id: number) {
+  async findOneForUser(userId: string, id: string) {
     const rows = await this.db
       .select({
         transaction: transactionsTable,
@@ -96,7 +96,7 @@ export class TransactionsService {
     return this.toResponse(row.transaction, row.type);
   }
 
-  async update(userId: number, id: number, dto: UpdateTransactionDto) {
+  async update(userId: string, id: string, dto: UpdateTransactionDto) {
     const current = await this.requireOwnedTransaction(userId, id);
 
     const nextFlow = dto.flow ?? current.flow;
@@ -130,7 +130,7 @@ export class TransactionsService {
     return this.findOneForUser(userId, updated.id);
   }
 
-  async remove(userId: number, id: number) {
+  async remove(userId: string, id: string) {
     const transaction = await this.findOneForUser(userId, id);
 
     await this.uploadsService.deleteObject(userId, transaction.imageKey);
@@ -145,8 +145,8 @@ export class TransactionsService {
   }
 
   private async findByUserId(
-    requesterId: number,
-    targetUserId: number,
+    requesterId: string,
+    targetUserId: string,
     requesterRole: UserRole,
     query: ListTransactionsQueryDto,
   ) {
@@ -214,7 +214,7 @@ export class TransactionsService {
     };
   }
 
-  private async requireOwnedTransaction(userId: number, id: number) {
+  private async requireOwnedTransaction(userId: string, id: string) {
     const [current] = await this.db
       .select()
       .from(transactionsTable)

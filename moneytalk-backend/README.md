@@ -140,6 +140,13 @@ npm run db:migrate
 | PATCH | `/api/transactions/me/:id` | Bearer | Sửa giao dịch |
 | DELETE | `/api/transactions/me/:id` | Bearer | Xóa giao dịch + ảnh R2 |
 | GET | `/api/transactions/user/:userId` | Admin | Giao dịch theo user |
+| GET | `/api/friends` | Bearer | Danh sách bạn bè |
+| GET | `/api/friends/requests/incoming` | Bearer | Lời mời nhận được |
+| GET | `/api/friends/requests/outgoing` | Bearer | Lời mời đã gửi |
+| POST | `/api/friends/requests` | Bearer | Gửi lời mời kết bạn |
+| PATCH | `/api/friends/requests/:id/accept` | Bearer | Chấp nhận lời mời |
+| PATCH | `/api/friends/requests/:id/reject` | Bearer | Từ chối lời mời |
+| DELETE | `/api/friends/:userId` | Bearer | Huỷ kết bạn |
 
 ### Dùng JWT trên Swagger
 
@@ -436,6 +443,8 @@ Quy trình chuẩn: **sửa schema → generate → review SQL → migrate → c
 ### Bước 1 — Sửa schema
 
 Chỉnh file trong `src/database/schema/` (ví dụ `users.schema.ts`).
+
+> **IDs:** Tất cả primary key / foreign key dùng **UUID** (`gen_random_uuid()`). JWT `sub` cũng là UUID string. Migration `uuid_primary_keys` **xóa và tạo lại** bảng — cần đăng ký lại user sau khi migrate.
 
 ### Bước 2 — Generate migration
 

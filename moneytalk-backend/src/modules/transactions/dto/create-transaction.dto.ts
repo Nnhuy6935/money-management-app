@@ -2,15 +2,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
-  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
 import { TransactionFlow } from '../../../common/constants/transaction.constants';
+import { UUID_EXAMPLE } from '../../../common/constants/swagger.constants';
 
 export class CreateTransactionDto {
   @ApiProperty({ example: 150000, description: 'Số tiền (VND)' })
@@ -34,7 +35,7 @@ export class CreateTransactionDto {
   flow: TransactionFlow;
 
   @ApiProperty({
-    example: 'https://cdn.example.com/transactions/1/uuid.jpg',
+    example: 'https://cdn.example.com/transactions/uuid/uuid.jpg',
     description: 'URL ảnh từ POST /api/uploads/presign (field `url`)',
   })
   @IsString()
@@ -42,8 +43,9 @@ export class CreateTransactionDto {
   imageUrl: string;
 
   @ApiPropertyOptional({
-    example: 1,
+    example: UUID_EXAMPLE,
     nullable: true,
+    format: 'uuid',
     description:
       'ID loại giao dịch (xem GET /transaction-types). Có thể bỏ trống.',
   })
@@ -52,8 +54,6 @@ export class CreateTransactionDto {
     value === '' || value === 'null' || value === undefined ? null : value,
   )
   @ValidateIf((_, value) => value !== null)
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  typeId?: number | null;
+  @IsUUID()
+  typeId?: string | null;
 }
