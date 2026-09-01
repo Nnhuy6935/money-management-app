@@ -130,12 +130,280 @@ npm run db:migrate
 | PATCH | `/api/users/:id` | Self / Admin | Cập nhật (role chỉ admin) |
 | DELETE | `/api/users/:id` | Admin | Xóa user |
 | GET | `/api/stats/overview` | Admin | Thống kê |
+| GET | `/api/transaction-types` | Bearer | Loại giao dịch (default + custom của user) |
+| POST | `/api/transaction-types` | Bearer | Thêm loại giao dịch custom |
+| POST | `/api/uploads/image` | Bearer | Upload ảnh qua backend (khuyên dùng) |
+| POST | `/api/uploads/presign` | Bearer | Lấy presigned URL (client PUT trực tiếp) |
+| POST | `/api/transactions` | Bearer | Tạo giao dịch (truyền `imageUrl`) |
+| GET | `/api/transactions/me` | Bearer | Danh sách giao dịch (lọc ngày) |
+| GET | `/api/transactions/me/:id` | Bearer | Chi tiết giao dịch |
+| PATCH | `/api/transactions/me/:id` | Bearer | Sửa giao dịch |
+| DELETE | `/api/transactions/me/:id` | Bearer | Xóa giao dịch + ảnh R2 |
+| GET | `/api/transactions/user/:userId` | Admin | Giao dịch theo user |
 
 ### Dùng JWT trên Swagger
 
 1. `POST /api/auth/login` (hoặc register) → copy `accessToken`
 2. Bấm **Authorize** → dán token (hoặc `Bearer <token>`)
 3. Gọi các API còn lại
+
+---
+
+## Cấu hình biến môi trường (`.env`)
+
+```bash
+cp .env.example .env
+```
+
+### 1. `DATABASE_URL` (Supabase)
+
+1. Mở [Supabase Dashboard](https://supabase.com/dashboard) → chọn project  
+2. **Project Settings** → **Database**  
+3. Mục **Connection string** → chọn **URI**  
+4. Copy chuỗi, thay `[YOUR-PASSWORD]` bằng database password  
+5. Gợi ý:
+   - App (`start:dev`): **Pooler** (thường port `6543`)
+   - `db:migrate` nếu lỗi: tạm dùng **Direct** (host `db.<ref>.supabase.co`, port `5432`)
+
+Ví dụ:
+
+```env
+DATABASE_URL=postgresql://postgres.xxxxx:YOUR_PASSWORD@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+```
+
+---
+
+### 2. `JWT_SECRET` / `JWT_EXPIRES_IN`
+
+```bash
+openssl rand -base64 32
+```
+
+Dán kết quả vào:
+
+```env
+JWT_SECRET=paste_openssl_output_here
+JWT_EXPIRES_IN=7d
+```
+
+---
+
+### 3. Cloudflare R2 (upload ảnh)
+
+#### 3.1. `R2_ACCOUNT_ID`
+
+1. Đăng nhập [Cloudflare Dashboard](https://dash.cloudflare.com/)  
+2. Sidebar phải / Overview account → **Account ID** (chuỗi hex)  
+3. Hoặc vào **R2** → nhìn URL / overview cũng có Account ID  
+
+```env
+R2_ACCOUNT_ID=0123456789abcdef0123456789abcdef
+```
+
+#### 3.2. Tạo bucket → `R2_BUCKET_NAME`
+
+1. Cloudflare → **R2 Object Storage** → **Create bucket**  
+2. Đặt tên (vd `moneytalk`) — chỉ chữ thường, số, dấu `-`  
+
+```env
+R2_BUCKET_NAME=moneytalk
+```
+
+#### 3.3. API Token → `R2_ACCESS_KEY_ID` + `R2_SECRET_ACCESS_KEY`
+
+1. R2 → **Overview** → **Manage R2 API Tokens** (hoặc Account API Tokens liên quan R2)  
+2. **Create API token**  
+3. Permissions: **Object Read & Write** (hoặc Admin Read & Write nếu cần)  
+4. Scope: chọn bucket `moneytalk` (hoặc All buckets khi dev)  
+5. Create → Cloudflare hiện **một lần**:
+   - **Access Key ID** → `R2_ACCESS_KEY_ID`
+   - **Secret Access Key** → `R2_SECRET_ACCESS_KEY`  
+   (Copy ngay — không xem lại được)
+
+```env
+R2_ACCESS_KEY_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+R2_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### 3.4. Public URL → `R2_PUBLIC_URL`
+
+Ảnh phải mở được qua HTTP công khai:
+
+**Cách A — R2.dev subdomain (nhanh để test)**  
+1. Vào bucket → **Settings**  
+2. **Public access** → **Allow Access** / Connect **R2.dev** subdomain  
+3. Copy URL dạng `https://pub-xxxxx.r2.dev`  
+
+```env
+R2_PUBLIC_URL=https://pub-xxxxxxxxxxxxxxxxxxxx.r2.dev
+```
+
+**Cách B — Custom domain (production)**  
+1. Bucket → **Settings** → **Custom Domains** → gắn domain (vd `cdn.moneytalk.com`)  
+2. Điền:
+
+```env
+R2_PUBLIC_URL=https://cdn.moneytalk.com
+```
+
+> Không dùng endpoint S3 (`*.r2.cloudflarestorage.com`) làm `R2_PUBLIC_URL` — đó là API private, trình duyệt không mở ảnh được.
+
+#### Troubleshooting — URL ảnh không mở được
+
+| Triệu chứng | Nguyên nhân | Cách xử lý |
+| --- | --- | --- |
+| XML / AccessDenied | Dùng nhầm **`uploadUrl`** (presigned) thay vì **`publicUrl`** | Chỉ mở `publicUrl` / `url` từ presign response |
+| 404 Not Found | Chưa PUT file lên `uploadUrl`, hoặc PUT lỗi | PUT lại file, kiểm tra response **200** |
+| File tải về nhưng hỏng | PUT gửi **FormData** thay vì binary thô | `body: file` + header `Content-Type: image/jpeg` |
+| 401/403 trên r2.dev | Bucket chưa bật **Public access** | Bucket → Settings → Allow Access / R2.dev subdomain |
+
+**PUT đúng (JavaScript):**
+```javascript
+await fetch(uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': contentType },
+  body: file, // File/Blob gốc, không bọc FormData
+});
+// Sau đó mới dùng publicUrl
+```
+
+#### 3.5. `R2_ENDPOINT` (optional)
+
+Thường **không cần** set. App tự dùng:
+
+```text
+https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
+```
+
+Chỉ set khi Cloudflare hướng dẫn endpoint khác.
+
+---
+
+### Checklist `.env` đầy đủ
+
+```env
+DATABASE_URL=...
+JWT_SECRET=...
+JWT_EXPIRES_IN=7d
+
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=moneytalk
+R2_PUBLIC_URL=https://pub-xxxx.r2.dev
+```
+
+Sau khi lưu `.env`, restart:
+
+```bash
+npm run start:dev
+```
+
+Test: Swagger → Authorize → `POST /api/uploads/presign` → PUT file lên `uploadUrl` → `POST /api/transactions`.
+
+---
+
+## Giao dịch thu/chi (ảnh + metadata)
+
+Ảnh lưu **R2**; metadata lưu **PostgreSQL** (`transactions`, `transaction_types`).
+
+### Loại giao dịch (`transaction_types`)
+
+Mỗi loại thuộc **expense** hoặc **income**, có `isDefault` (hệ thống) hoặc custom (user tạo).
+
+**Expense mặc định:** `food`, `shopping`, `transport`, `entertainment`, `health`, `education`, `other`
+
+**Income mặc định:** `salary`, `gift`
+
+```http
+GET /api/transaction-types?flow=expense
+GET /api/transaction-types?flow=income
+```
+
+**Thêm loại custom:**
+
+```http
+POST /api/transaction-types
+Content-Type: application/json
+
+{
+  "name": "Freelance",
+  "flow": "income",
+  "code": "freelance"
+}
+```
+
+`code` tuỳ chọn — bỏ trống sẽ tự sinh từ `name`. `typeId` khi tạo giao dịch phải **khớp `flow`**.
+
+### Upload ảnh
+
+#### Cách A — Qua backend (khuyên dùng, test Swagger dễ)
+
+`POST /api/uploads/image` — `multipart/form-data`, field `file`.
+
+Response `url` / `publicUrl` → dùng làm `imageUrl` khi tạo transaction.
+
+#### Cách B — Presigned URL (client PUT trực tiếp lên R2)
+
+**Bước 1 — Xin URL upload**
+
+`POST /api/uploads/presign` — `application/json`:
+
+| Field | Bắt buộc | Mô tả |
+| --- | --- | --- |
+| `contentType` | ✓ | `image/jpeg`, `image/png`, `image/webp`, `image/gif` |
+
+Response:
+
+```json
+{
+  "uploadUrl": "https://...r2.cloudflarestorage.com/...?X-Amz-Signature=...",
+  "key": "transactions/1/uuid.jpg",
+  "url": "https://cdn.example.com/transactions/1/uuid.jpg",
+  "contentType": "image/jpeg",
+  "expiresIn": 900
+}
+```
+
+**Bước 2 — Upload trực tiếp lên R2**
+
+Client gọi **PUT** lên `uploadUrl` (không qua backend):
+
+```http
+PUT {uploadUrl}
+Content-Type: image/jpeg
+
+<binary file data>
+```
+
+`Content-Type` phải **khớp** với `contentType` đã gửi ở bước 1.
+
+### Tạo giao dịch (bước 3)
+
+`POST /api/transactions` — `application/json`:
+
+| Field | Bắt buộc | Mô tả |
+| --- | --- | --- |
+| `imageUrl` | ✓ | `url` từ bước 1 (sau khi PUT xong) |
+| `amount` | ✓ | Số tiền |
+| `flow` | ✓ | `income` hoặc `expense` |
+| `typeId` | | ID từ `/transaction-types` (có thể null) |
+| `description` | | Mô tả |
+
+### Lấy theo user + ngày (giờ Việt Nam UTC+7)
+
+```http
+GET /api/transactions/me?date=2026-08-23
+GET /api/transactions/me?from=2026-08-01&to=2026-08-31
+GET /api/transactions/me?flow=expense&typeId=1&page=1&limit=20
+```
+
+Sau khi đổi schema, chạy:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
 
 ---
 
