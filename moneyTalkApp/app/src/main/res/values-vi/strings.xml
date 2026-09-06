@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Money Talk</string>
+    <string name="login">Đăng nhập</string>
+    <string name="welcome_back_message">Chào mừng quay trở lại, vui lòng đăng nhập vào tài khoản của bạn!</string>
+    <string name="email">Email</string>
+    <string name="password">Mật khẩu</string>
+    <string name="dont_have_account">Chưa có tài khoản? </string>
+    <string name="signup">Đăng ký</string>
+    <string name="welcome_home">Chào mừng bạn đến với Màn hình chính!</string>
+    <string name="signup_title">Đăng ký</string>
+    <string name="signup_description">Đăng ký để bắt đầu hành trình của bạn.</string>
+    <string name="signup_confirm_password">Xác nhận mật khẩu</string>
+    <string name="siginup_have_account">Đã có tài khoản?</string>
+    <string name="error_email_empty">Email không được để trống</string>
+    <string name="error_email_invalid">Định dạng email không hợp lệ</string>
+    <string name="error_password_empty">Mật khẩu không được để trống</string>
+    <string name="error_password_too_short">Mật khẩu phải có ít nhất 6 ký tự</string>
+    <string name="error_confirm_password_mismatch">Mật khẩu xác nhận không khớp</string>
+</resources>
