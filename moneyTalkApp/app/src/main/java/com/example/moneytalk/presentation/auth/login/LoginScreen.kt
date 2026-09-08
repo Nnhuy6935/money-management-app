@@ -1,12 +1,9 @@
 package com.example.moneytalk.presentation.auth.login
 
-import android.provider.CalendarContract
-import android.text.Layout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,14 +29,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -127,7 +120,8 @@ fun LoginScreen(
                             if (emailError != null) {
                                 Text(
                                     text = stringResource(emailError),
-                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.error)
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Red
+                                    )
                                 )
                             }
                         },
@@ -162,7 +156,7 @@ fun LoginScreen(
                             if (passwordError != null) {
                                 Text(
                                     text = stringResource(passwordError),
-                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.error)
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Red)
                                 )
                             }
                         },
@@ -197,7 +191,7 @@ fun LoginScreen(
                             disabledContainerColor =  Color(0xFF1b859f).copy(alpha = 0.5f),
                             disabledContentColor = Color.White.copy(alpha = 0.5f)
                         ),
-                        enabled = email.isNotBlank() && password.isNotBlank(),
+                        enabled = true,
                         shape = RoundedCornerShape(24.dp),
                     ) {
                         Text(

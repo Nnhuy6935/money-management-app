@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.moneytalk.core.navigation.AppNavigation
+import com.example.moneytalk.core.ui.components.ToastProvider
 import com.example.moneytalk.core.ui.theme.MoneyTalkTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +14,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MoneyTalkTheme {
-                AppNavigation()
+                ToastProvider {
+                    AppNavigation()
+                }
             }
         }
     }

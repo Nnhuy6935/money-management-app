@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.moneytalk.R
 import com.example.moneytalk.presentation.auth.login.LoginScreen
-import com.example.moneytalk.presentation.auth.login.SignupScreen
+import com.example.moneytalk.presentation.auth.signup.SignupScreen
 
 @Composable
 fun AppNavigation() {
