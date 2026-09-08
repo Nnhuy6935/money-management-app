@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Money Talk</string>
+    <string name="login">Login</string>
+    <string name="welcome_back_message">Welcome back please login to your account!</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="dont_have_account">Don\'t have an account? </string>
+    <string name="signup">Signup</string>
+    <string name="welcome_home">Welcome to Home Screen!</string>
+    <string name="signup_title">Sign in</string>
+    <string name="signup_description">Your journey starts here. Take the first step</string>
+    <string name="signup_confirm_password">Confirm Password</string>
+    <string name="siginup_have_account">Already have an account?</string>
+    <string name="error_email_empty">Email cannot be empty</string>
+    <string name="error_email_invalid">Invalid email format</string>
+    <string name="error_password_empty">Password cannot be empty</string>
+    <string name="error_password_too_short">Password must be at least 6 characters</string>
+    <string name="error_confirm_password_mismatch">Passwords do not match</string>
+</resources>
