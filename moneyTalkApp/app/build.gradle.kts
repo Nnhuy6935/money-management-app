@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     // Kotlin serialization plugin for type safe routes and navigation arguments
     kotlin("plugin.serialization") version "2.0.21"
+}
+
+fun loadEnvValue(envName: String, key: String, defaultValue: String): String {
+    val props = Properties()
+    val envFile = rootProject.file("env.$envName")
+    if (envFile.exists()) {
+        envFile.inputStream().use { props.load(it) }
+    }
+    return props.getProperty(key) ?: defaultValue
 }
 
 android {
@@ -22,7 +33,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"${loadEnvValue("dev", "BASE_URL", "http://10.0.2.2:3000/")}\"")
+        }
         release {
+            buildConfigField("String", "BASE_URL", "\"${loadEnvValue("staging", "BASE_URL", "http://api.moneytalk.com/")}\"")
             optimization {
                 enable = false
             }
@@ -34,12 +49,17 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.retrofit)
+    implementation(libs.okhttp.logging)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.retrofit.kotlinx.serialization.converter)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

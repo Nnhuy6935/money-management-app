@@ -12,16 +12,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +49,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.moneytalk.R
+import com.example.moneytalk.core.ui.components.LocalToastManager
 import com.example.moneytalk.core.ui.theme.MoneyTalkTheme
 
 @Composable
@@ -57,177 +63,197 @@ fun LoginScreen(
     val emailError = viewModel.emailError.value
     val passwordError = viewModel.passwordError.value
     val isPasswordVisible = viewModel.isPasswordVisible.value
+    val isLoading = viewModel.isLoading.value
+    val toastManager = LocalToastManager.current
 
     Scaffold { innerPadding ->
-        //background
+        // Root container - stays fixed even when keyboard opens
         Box(
             modifier = Modifier
-                .background(color = Color(0xFFD0BCFF))
                 .fillMaxSize()
-
-        ){
-            //background image
-            Image(painter = painterResource(R.drawable.signin_background),
+                .background(color = Color(0xFFD0BCFF))
+        ) {
+            // Background image - fills entire screen and doesn't shrink
+            Image(
+                painter = painterResource(R.drawable.signin_background),
                 contentDescription = null,
                 contentScale = ContentScale.FillHeight,
-                modifier = Modifier.fillMaxSize())
-            //signin card (overlay dim and blur)
-            Surface(
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Content container - handles status bars and keyboard
+            Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth(0.8f)
-                    .wrapContentHeight(),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.White.copy(alpha = 0.15f),
-                tonalElevation = 0.dp,
-                border = BorderStroke(1.dp, color = Color.White.copy())
-
-            ){
-
-                Column(
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding()
+            ) {
+                // Centered card
+                Surface(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.Start
+                        .align(Alignment.Center)
+                        .fillMaxWidth(0.9f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color.White.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, color = Color.White.copy(alpha = 0.3f))
                 ) {
-                    Text(
-                        text = stringResource(R.string.login),
-                        style = MaterialTheme.typography.headlineMedium.copy(color = Color.White),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.welcome_back_message),
-                        style = MaterialTheme.typography.bodySmall.copy(color = Color.White),
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = viewModel::onEmailChange,
-                        label = {
-                            Text(
-                                stringResource(R.string.email),
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-                            )
-                                },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        isError = emailError != null,
-                        supportingText = {
-                            if (emailError != null) {
-                                Text(
-                                    text = stringResource(emailError),
-                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Red
-                                    )
-                                )
-                            }
-                        },
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Person,
-                                contentDescription = null,
-                                tint = if (emailError != null) MaterialTheme.colorScheme.error else Color.White
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                        ),
-                        shape = RoundedCornerShape(24.dp),
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = viewModel::onPasswordChange,
-                        label = {
-                            Text(
-                                stringResource(R.string.password),
-                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-                            )
-                                },
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = passwordError != null,
-                        supportingText = {
-                            if (passwordError != null) {
-                                Text(
-                                    text = stringResource(passwordError),
-                                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Red)
-                                )
-                            }
-                        },
-                        visualTransformation = if(!isPasswordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                        trailingIcon = {
-                            IconButton(
-                                onClick =  viewModel::onPasswordVisibilityChange,
-                            ) {
-                                Icon(
-                                    imageVector = if (isPasswordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                                    contentDescription = null,
-                                    tint = if (passwordError != null) MaterialTheme.colorScheme.error else Color.White
-                                )
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                        ),
-                        shape = RoundedCornerShape(24.dp),
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = { viewModel.onLoginClick(onLoginSuccess) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonColors(
-                            containerColor = Color(0xFF1b859f),
-                            contentColor = Color.White,
-                            disabledContainerColor =  Color(0xFF1b859f).copy(alpha = 0.5f),
-                            disabledContentColor = Color.White.copy(alpha = 0.5f)
-                        ),
-                        enabled = true,
-                        shape = RoundedCornerShape(24.dp),
+                    val scrollState = rememberScrollState()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(scrollState)
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.Start
                     ) {
                         Text(
                             text = stringResource(R.string.login),
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                            style = MaterialTheme.typography.headlineMedium.copy(color = Color.White),
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            stringResource(R.string.dont_have_account),
-                            style = MaterialTheme.typography.bodyMedium.copy(Color.White)
+                            text = stringResource(R.string.welcome_back_message),
+                            style = MaterialTheme.typography.bodySmall.copy(color = Color.White),
                         )
-                        Text(
-                            stringResource(R.string.signup),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                Color.White,
-                                fontWeight = FontWeight(700),
 
-                                ),
-                            modifier = Modifier.clickable{
-                                onSignUpClick();
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = viewModel::onEmailChange,
+                            label = {
+                                Text(
+                                    stringResource(R.string.email),
+                                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            isError = emailError != null,
+                            supportingText = {
+                                if (emailError != null) {
+                                    Text(
+                                        text = stringResource(emailError),
+                                        style = MaterialTheme.typography.bodySmall.copy(color = Color.Red)
+                                    )
+                                }
+                            },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Person,
+                                    contentDescription = null,
+                                    tint = if (emailError != null) Color.Red else Color.White
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = viewModel::onPasswordChange,
+                            label = {
+                                Text(
+                                    stringResource(R.string.password),
+                                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            isError = passwordError != null,
+                            supportingText = {
+                                if (passwordError != null) {
+                                    Text(
+                                        text = stringResource(passwordError),
+                                        style = MaterialTheme.typography.bodySmall.copy(color = Color.Red)
+                                    )
+                                }
+                            },
+                            visualTransformation = if (!isPasswordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = viewModel::onPasswordVisibilityChange,
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPasswordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = if (passwordError != null) Color.Red else Color.White
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Button(
+                            onClick = {
+                                viewModel.onLoginClick(
+                                    onSuccess = onLoginSuccess,
+                                    onError = { error ->
+                                        toastManager.error(error)
+                                    }
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonColors(
+                                containerColor = Color(0xFF1b859f),
+                                contentColor = Color.White,
+                                disabledContainerColor = Color(0xFF1b859f).copy(alpha = 0.5f),
+                                disabledContentColor = Color.White.copy(alpha = 0.5f)
+                            ),
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(24.dp),
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.login),
+                                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+                                )
                             }
-                        )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                stringResource(R.string.dont_have_account),
+                                style = MaterialTheme.typography.bodyMedium.copy(Color.White)
+                            )
+                            Text(
+                                stringResource(R.string.signup),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    Color.White,
+                                    fontWeight = FontWeight(700),
+                                ),
+                                modifier = Modifier.clickable {
+                                    onSignUpClick()
+                                }
+                            )
+                        }
                     }
                 }
-
             }
         }
-
-
     }
 }
 
