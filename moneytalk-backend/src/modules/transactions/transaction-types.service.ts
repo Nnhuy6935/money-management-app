@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { and, asc, eq, isNull, or, SQL } from 'drizzle-orm';
 import {
   DEFAULT_EXPENSE_TRANSACTION_TYPES,
@@ -104,7 +99,11 @@ export class TransactionTypesService implements OnModuleInit {
     }
 
     if (type.flow !== flow) {
-      throw AppException.transactionTypeFlowMismatch(type.name, type.flow, flow);
+      throw AppException.transactionTypeFlowMismatch(
+        type.name,
+        type.flow,
+        flow,
+      );
     }
 
     if (!type.isDefault && type.userId !== userId) {

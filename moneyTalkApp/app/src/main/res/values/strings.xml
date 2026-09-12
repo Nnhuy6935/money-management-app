@@ -16,4 +16,5 @@
     <string name="error_password_empty">Password cannot be empty</string>
     <string name="error_password_too_short">Password must be at least 6 characters</string>
     <string name="error_confirm_password_mismatch">Passwords do not match</string>
+    <string name="account_logout">Logout</string>
 </resources>

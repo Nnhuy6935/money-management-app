@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import com.example.moneytalk.core.navigation.AppNavigation
 import com.example.moneytalk.core.ui.components.ToastProvider
 import com.example.moneytalk.core.ui.theme.MoneyTalkTheme
+import com.example.moneytalk.presentation.account.AccountProvider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -14,8 +15,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MoneyTalkTheme {
-                ToastProvider {
-                    AppNavigation()
+                AccountProvider {
+                    ToastProvider {
+                        AppNavigation()
+                    }
                 }
             }
         }

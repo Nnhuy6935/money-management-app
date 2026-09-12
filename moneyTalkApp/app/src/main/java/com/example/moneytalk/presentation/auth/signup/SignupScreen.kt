@@ -285,7 +285,7 @@ fun SignupScreen(
                                 style = MaterialTheme.typography.bodyMedium.copy(Color.White)
                             )
                             Text(
-                                stringResource(R.string.signup_title),
+                                stringResource(R.string.login),
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     Color.White,
                                     fontWeight = FontWeight(700),

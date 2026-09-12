@@ -5,6 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.moneytalk.MoneyTalkApp
 import com.example.moneytalk.R
 import com.example.moneytalk.core.network.NetworkResult
 import com.example.moneytalk.data.repository.auth.AuthRepository
@@ -12,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class LoginViewModel : ViewModel() {
 
-    private val authRepository = AuthRepository()
+    private val authRepository = AuthRepository(MoneyTalkApp.instance.tokenManager)
 
     private val _email = mutableStateOf("")
     val email: State<String> = _email

@@ -30,9 +30,7 @@ export function assertImageFile(
 }
 
 export function assertAllowedR2ContentType(contentType: string): void {
-  if (
-    !ALLOWED_IMAGE_MIME_TYPES.includes(contentType as AllowedImageMimeType)
-  ) {
+  if (!ALLOWED_IMAGE_MIME_TYPES.includes(contentType as AllowedImageMimeType)) {
     throw new BadRequestException(
       contentType.startsWith('multipart/')
         ? 'Ảnh upload sai format (FormData). PUT binary trực tiếp lên uploadUrl, hoặc dùng POST /api/uploads/image.'
