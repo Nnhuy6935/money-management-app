@@ -1,15 +1,20 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { DRIZZLE } from '../../common/constants/injection-tokens';
 import {
   normalizeEmail,
   validateRegisterEmail,
 } from '../../common/utils/email.util';
-import type { PublicUser } from '../../database/schema';
+import type { Database } from '../../database/database.types';
+import { sessionsTable, type PublicUser } from '../../database/schema';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +24,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    @Inject(DRIZZLE) private readonly db: Database,
   ) {}
 
   async register(dto: CreateUserDto) {
@@ -58,11 +64,29 @@ export class AuthService {
     return this.usersService.findOne(userId);
   }
 
-  private buildAuthResponse(user: PublicUser) {
+  async logout(jti: string) {
+    await this.db.delete(sessionsTable).where(eq(sessionsTable.jti, jti));
+
+    return {
+      message: 'Đăng xuất thành công',
+    };
+  }
+
+  private async buildAuthResponse(user: PublicUser) {
+    const jti = randomUUID();
     const accessToken = this.jwtService.sign({
       sub: user.id,
       email: user.email,
       role: user.role,
+      jti,
+    });
+
+    const decoded = this.jwtService.decode<{ exp: number }>(accessToken);
+
+    await this.db.insert(sessionsTable).values({
+      userId: user.id,
+      jti,
+      expiresAt: new Date(decoded.exp * 1000),
     });
 
     return {

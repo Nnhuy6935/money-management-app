@@ -24,8 +24,7 @@ export class CreateTransactionTypeDto {
 
   @ApiPropertyOptional({
     example: 'freelance',
-    description:
-      'Mã loại (a-z, 0-9, _). Bỏ trống → tự sinh từ `name`',
+    description: 'Mã loại (a-z, 0-9, _). Bỏ trống → tự sinh từ `name`',
   })
   @IsOptional()
   @IsString()

@@ -18,8 +18,7 @@ export const AppErrorMessages = {
     requestNotFound: (id: string) => `Lời mời kết bạn #${id} không tồn tại`,
     alreadyFriends: 'Hai người đã là bạn bè',
     requestAlreadySent: 'Lời mời kết bạn đã được gửi',
-    requestAlreadyPending:
-      'Đã có lời mời kết bạn đang chờ giữa hai người',
+    requestAlreadyPending: 'Đã có lời mời kết bạn đang chờ giữa hai người',
     notFriends: 'Hai người chưa là bạn bè',
     requestAccessDenied: 'Bạn không có quyền xử lý lời mời này',
   },

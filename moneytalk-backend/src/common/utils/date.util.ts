@@ -7,7 +7,10 @@ export function getDayRangeInUtc(date: string): { start: Date; end: Date } {
   return { start, end };
 }
 
-export function getDateRangeInUtc(from: string, to: string): {
+export function getDateRangeInUtc(
+  from: string,
+  to: string,
+): {
   start: Date;
   end: Date;
 } {

@@ -16,4 +16,5 @@
     <string name="error_password_empty">Mật khẩu không được để trống</string>
     <string name="error_password_too_short">Mật khẩu phải có ít nhất 6 ký tự</string>
     <string name="error_confirm_password_mismatch">Mật khẩu xác nhận không khớp</string>
+    <string name="account_logout">Đăng xuất</string>
 </resources>

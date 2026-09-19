@@ -117,7 +117,10 @@ export class TransactionsController {
     schema: { example: { deleted: true, id: UUID_EXAMPLE } },
   })
   @ApiNotFoundResponse()
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.transactionsService.remove(user.id, id);
   }
 }

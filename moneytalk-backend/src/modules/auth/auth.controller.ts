@@ -54,4 +54,13 @@ export class AuthController {
   me(@CurrentUser() user: AuthUser) {
     return this.authService.me(user.id);
   }
+
+  @Post('logout')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Đăng xuất, thu hồi token hiện tại' })
+  @ApiOkResponse({ description: 'Đăng xuất thành công, token bị vô hiệu hóa' })
+  @ApiUnauthorizedResponse({ description: 'Thiếu / sai token' })
+  logout(@CurrentUser() user: AuthUser) {
+    return this.authService.logout(user.jti);
+  }
 }

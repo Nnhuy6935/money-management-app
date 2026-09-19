@@ -4,9 +4,16 @@ import android.util.Patterns
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.moneytalk.MoneyTalkApp
 import com.example.moneytalk.R
+import com.example.moneytalk.core.network.NetworkResult
+import com.example.moneytalk.data.repository.auth.AuthRepository
+import kotlinx.coroutines.launch
 
 class LoginViewModel : ViewModel() {
+
+    private val authRepository = AuthRepository(MoneyTalkApp.instance.tokenManager)
 
     private val _email = mutableStateOf("")
     val email: State<String> = _email
@@ -22,6 +29,9 @@ class LoginViewModel : ViewModel() {
 
     private val _isPasswordVisible = mutableStateOf(false)
     val isPasswordVisible: State<Boolean> = _isPasswordVisible
+
+    private val _isLoading = mutableStateOf(false)
+    val isLoading: State<Boolean> = _isLoading
 
     fun onEmailChange(newValue: String) {
         _email.value = newValue
@@ -59,9 +69,22 @@ class LoginViewModel : ViewModel() {
         return isValid
     }
 
-    fun onLoginClick(onSuccess: () -> Unit) {
+    fun onLoginClick(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
         if (validate()) {
-            onSuccess()
+            viewModelScope.launch {
+                _isLoading.value = true
+                val result = authRepository.login(_email.value, _password.value)
+                _isLoading.value = false
+                
+                when (result) {
+                    is NetworkResult.Success -> onSuccess()
+                    is NetworkResult.Error -> onError(result.message)
+                    is NetworkResult.Loading -> { /* Handled by _isLoading */ }
+                }
+            }
         }
     }
 }

@@ -100,8 +100,7 @@ export class TransactionsService {
     const current = await this.requireOwnedTransaction(userId, id);
 
     const nextFlow = dto.flow ?? current.flow;
-    const nextTypeId =
-      dto.typeId !== undefined ? dto.typeId : current.typeId;
+    const nextTypeId = dto.typeId !== undefined ? dto.typeId : current.typeId;
 
     if (nextTypeId !== null) {
       await this.transactionTypesService.assertTypeAllowed(
