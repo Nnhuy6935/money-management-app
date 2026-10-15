@@ -16,3 +16,6 @@ val LightBottomNav = Color(0xFFF3F3F3)
 
 val DarkBackground = Color(0xFF000000)
 val LightBackground = Color(0xFFFFFFFF)
+
+val IncomeGreen = Color(0xFF4CAF50)
+val ExpenseRed = Color(0xFFF44336)

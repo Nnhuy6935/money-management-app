@@ -1,4 +1,5 @@
-import 'dotenv/config';
+// Nạp .env theo NODE_ENV (vd: NODE_ENV=production npm run db:migrate)
+import './src/config/env';
 import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({

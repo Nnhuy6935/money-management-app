@@ -45,7 +45,7 @@ fun DashboardScreen(onLogout: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(horizontal = 24.dp, vertical = 0.dp)
                     .navigationBarsPadding()
             ) {
                 Surface(

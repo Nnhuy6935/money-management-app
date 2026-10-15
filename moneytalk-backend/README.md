@@ -6,11 +6,11 @@ NestJS API + PostgreSQL với [Drizzle ORM](https://orm.drizzle.team/).
 
 - Node.js 20+
 - PostgreSQL đang chạy
-- File `.env` (copy từ `.env.example`)
+- File env cho môi trường dev (copy từ `.env.example`)
 
 ```bash
-cp .env.example .env
-# Sửa DATABASE_URL cho đúng máy bạn
+cp .env.example .env.development
+# Sửa DATABASE_URL / JWT_SECRET / R2_* cho môi trường dev
 ```
 
 ## Cài đặt & chạy app
@@ -22,7 +22,51 @@ npm run start:dev
 
 API chạy tại `http://localhost:3000/api`.
 
-Swagger UI: **http://localhost:3000/api/docs**
+Swagger UI (chỉ bật ở development): **http://localhost:3000/api/docs**
+
+---
+
+## Môi trường (Development / Production)
+
+App chọn môi trường theo `NODE_ENV` (script đã set sẵn) và nạp env qua [`src/config/env.ts`](src/config/env.ts).
+
+| | Development (local) | Production |
+| --- | --- | --- |
+| `NODE_ENV` | `development` (mặc định) | `production` |
+| File env | `.env.development.local` → `.env.development` → `.env` | `.env.production.local` → `.env.production` (**không** đọc `.env`) |
+| Chạy app | `npm run start:dev` | `npm run build && npm run start:prod` |
+| Migration | `npm run db:migrate` | `npm run db:migrate:prod` |
+| Swagger | Bật | Tắt (bật bằng `SWAGGER_ENABLED=true`) |
+| Validate khi khởi động | Bắt buộc `DATABASE_URL`, `JWT_SECRET` | Thêm `R2_*`; `JWT_SECRET` ≥ 32 ký tự, không dùng giá trị mẫu |
+
+- **Biến môi trường thật của hệ thống luôn được ưu tiên** hơn mọi file `.env*`. Trên server / CI / hosting, nên set biến trực tiếp ở đó thay vì để file trên đĩa.
+- Dev và Prod phải dùng **DB, `JWT_SECRET` và bucket R2 riêng**.
+- Mọi file `.env*` đều bị gitignore, chỉ commit `.env.example`.
+- Setup cũ chỉ có `.env` vẫn chạy bình thường ở development.
+
+### Development
+
+```bash
+cp .env.example .env.development   # điền DB/R2 dev
+npm run db:migrate
+npm run start:dev
+```
+
+### Production
+
+```bash
+# Cách 1 (khuyên dùng): set env trên server/hosting
+export DATABASE_URL=... JWT_SECRET=... R2_ACCOUNT_ID=... # ...
+
+# Cách 2: file trên server (không commit)
+cp .env.example .env.production && chmod 600 .env.production
+
+npm ci && npm run build
+npm run db:migrate:prod
+npm run start:prod
+```
+
+Thiếu biến bắt buộc thì app dừng ngay khi khởi động và báo tên biến bị thiếu.
 
 ---
 
@@ -159,7 +203,7 @@ npm run db:migrate
 ## Cấu hình biến môi trường (`.env`)
 
 ```bash
-cp .env.example .env
+cp .env.example .env.development   # production: .env.production hoặc set env trên server
 ```
 
 ### 1. `DATABASE_URL` (Supabase)
@@ -286,7 +330,7 @@ Chỉ set khi Cloudflare hướng dẫn endpoint khác.
 
 ---
 
-### Checklist `.env` đầy đủ
+### Checklist env đầy đủ (dev & prod)
 
 ```env
 DATABASE_URL=...
@@ -300,7 +344,7 @@ R2_BUCKET_NAME=moneytalk
 R2_PUBLIC_URL=https://pub-xxxx.r2.dev
 ```
 
-Sau khi lưu `.env`, restart:
+Sau khi lưu file env, restart:
 
 ```bash
 npm run start:dev

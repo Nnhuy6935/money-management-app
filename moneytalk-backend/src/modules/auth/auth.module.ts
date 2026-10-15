@@ -11,7 +11,7 @@ import { JwtStrategy } from './jwt.strategy';
     UsersModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'moneytalk-dev-secret',
+      secret: process.env.JWT_SECRET!,
       signOptions: {
         expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as `${number}d`,
       },
