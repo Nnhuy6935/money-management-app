@@ -102,6 +102,11 @@ Log khởi động sẽ hiện môi trường và file env đã nạp:
 
 ## Setup Production
 
+> Hướng dẫn deploy chi tiết lên nền tảng miễn phí:
+>
+> - **[docs/deploy-render.md](docs/deploy-render.md)** — Render Free (deploy từ GitHub, không cần quản lý server; có cold start).
+> - [docs/deploy-oracle.md](docs/deploy-oracle.md) — Oracle Cloud Always Free + DuckDNS + Caddy + pm2 (không ngủ; tự quản lý VPS).
+
 ### Bước 1 — Chuẩn bị tài nguyên riêng cho production
 
 - **Database production** riêng (Supabase project khác với dev).
