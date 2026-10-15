@@ -1,72 +1,198 @@
 # MoneyTalk Backend
 
-NestJS API + PostgreSQL với [Drizzle ORM](https://orm.drizzle.team/).
+NestJS API + PostgreSQL (Supabase) với [Drizzle ORM](https://orm.drizzle.team/), lưu ảnh trên Cloudflare R2.
+
+Dự án có **2 môi trường**:
+
+- **Development** — chạy BE trên máy local để phát triển.
+- **Production** — chạy trên server thật.
+
+---
 
 ## Yêu cầu
 
 - Node.js 20+
-- PostgreSQL đang chạy
-- File env cho môi trường dev (copy từ `.env.example`)
-
-```bash
-cp .env.example .env.development
-# Sửa DATABASE_URL / JWT_SECRET / R2_* cho môi trường dev
-```
-
-## Cài đặt & chạy app
-
-```bash
-npm install
-npm run start:dev
-```
-
-API chạy tại `http://localhost:3000/api`.
-
-Swagger UI (chỉ bật ở development): **http://localhost:3000/api/docs**
+- [pnpm](https://pnpm.io/) (dự án dùng `pnpm-lock.yaml`). Các lệnh `npm run <script>` trong README dùng được tương đương `pnpm <script>`.
+- PostgreSQL (Supabase hoặc Postgres local)
+- Cloudflare R2 bucket (cho upload ảnh)
 
 ---
 
-## Môi trường (Development / Production)
+## Tổng quan môi trường
 
-App chọn môi trường theo `NODE_ENV` (script đã set sẵn) và nạp env qua [`src/config/env.ts`](src/config/env.ts).
+App chọn môi trường theo biến `NODE_ENV` (các script `start:*` đã set sẵn) và nạp biến môi trường qua [`src/config/env.ts`](src/config/env.ts).
 
 | | Development (local) | Production |
 | --- | --- | --- |
 | `NODE_ENV` | `development` (mặc định) | `production` |
-| File env | `.env.development.local` → `.env.development` → `.env` | `.env.production.local` → `.env.production` (**không** đọc `.env`) |
-| Chạy app | `npm run start:dev` | `npm run build && npm run start:prod` |
-| Migration | `npm run db:migrate` | `npm run db:migrate:prod` |
-| Swagger | Bật | Tắt (bật bằng `SWAGGER_ENABLED=true`) |
-| Validate khi khởi động | Bắt buộc `DATABASE_URL`, `JWT_SECRET` | Thêm `R2_*`; `JWT_SECRET` ≥ 32 ký tự, không dùng giá trị mẫu |
+| File env được đọc (ưu tiên từ trái sang) | `.env.development.local` → `.env.development` → `.env` | `.env.production.local` → `.env.production` (**không** đọc `.env`) |
+| Chạy app | `npm run start:dev` (hot reload) | `npm run build` → `npm run start:prod` |
+| Migration DB | `npm run db:migrate` | `npm run db:migrate:prod` |
+| Swagger (`/api/docs`) | Bật | Tắt (bật bằng `SWAGGER_ENABLED=true`) |
+| Biến bắt buộc | `DATABASE_URL`, `JWT_SECRET` | `DATABASE_URL`, `JWT_SECRET`, toàn bộ `R2_*` |
+| `JWT_SECRET` | Tùy ý | ≥ 32 ký tự, không dùng giá trị mẫu |
 
-- **Biến môi trường thật của hệ thống luôn được ưu tiên** hơn mọi file `.env*`. Trên server / CI / hosting, nên set biến trực tiếp ở đó thay vì để file trên đĩa.
-- Dev và Prod phải dùng **DB, `JWT_SECRET` và bucket R2 riêng**.
-- Mọi file `.env*` đều bị gitignore, chỉ commit `.env.example`.
-- Setup cũ chỉ có `.env` vẫn chạy bình thường ở development.
+Nguyên tắc:
 
-### Development
+- **Biến môi trường của hệ thống luôn được ưu tiên** hơn mọi file `.env*` (dùng cho server / CI / hosting).
+- Dev và Prod dùng **database, `JWT_SECRET` và bucket R2 riêng** — không dùng chung.
+- Mọi file `.env*` đều bị gitignore; **chỉ commit `.env.example`**. Không bao giờ commit secret.
+- Thiếu biến bắt buộc → app dừng ngay khi khởi động và in tên biến bị thiếu.
+
+---
+
+## Setup Development (local)
+
+### Bước 1 — Clone & cài dependencies
 
 ```bash
-cp .env.example .env.development   # điền DB/R2 dev
-npm run db:migrate
-npm run start:dev
+git clone <repo-url> moneytalk-backend
+cd moneytalk-backend
+pnpm install
 ```
 
-### Production
+### Bước 2 — Tạo file env cho dev
 
 ```bash
-# Cách 1 (khuyên dùng): set env trên server/hosting
-export DATABASE_URL=... JWT_SECRET=... R2_ACCOUNT_ID=... # ...
+cp .env.example .env.development
+```
 
-# Cách 2: file trên server (không commit)
-cp .env.example .env.production && chmod 600 .env.production
+Điền giá trị **của môi trường dev** vào `.env.development`:
 
-npm ci && npm run build
+| Biến | Giá trị dev | Hướng dẫn lấy |
+| --- | --- | --- |
+| `DATABASE_URL` | DB dev (Supabase project dev hoặc Postgres local) | [Mục 1](#1-database_url-supabase) |
+| `JWT_SECRET` | Chuỗi bất kỳ (nên random) | [Mục 2](#2-jwt_secret--jwt_expires_in) |
+| `JWT_EXPIRES_IN` | vd `7d` | |
+| `R2_*` | Bucket dev (vd `moneytalk-dev`) | [Mục 3](#3-cloudflare-r2-upload-ảnh) |
+| `PORT` | `3000` (mặc định) | |
+
+> Không có R2 vẫn chạy được ở dev — chỉ API upload ảnh lỗi (app in cảnh báo).
+>
+> Muốn override riêng trên máy mình (vd đổi `PORT`) mà không sửa file chung: tạo `.env.development.local`.
+>
+> Setup cũ chỉ có file `.env` vẫn chạy được ở dev, nhưng nên chuyển sang `.env.development`.
+
+### Bước 3 — Migrate database dev
+
+```bash
+npm run db:migrate
+```
+
+### Bước 4 — Chạy app
+
+```bash
+npm run start:dev        # hot reload
+# hoặc
+npm run start:debug      # kèm debugger
+```
+
+Log khởi động sẽ hiện môi trường và file env đã nạp:
+
+```text
+[Bootstrap] NODE_ENV=development | port=3000 | env files: .env.development
+```
+
+### Bước 5 — Kiểm tra
+
+- Health check: http://localhost:3000/api/health
+- Swagger UI: http://localhost:3000/api/docs
+
+---
+
+## Setup Production
+
+### Bước 1 — Chuẩn bị tài nguyên riêng cho production
+
+- **Database production** riêng (Supabase project khác với dev).
+- **Bucket R2 production** riêng (vd `moneytalk`) + API token riêng, nên dùng custom domain cho `R2_PUBLIC_URL`.
+- **`JWT_SECRET` production** mới, khác dev:
+
+  ```bash
+  openssl rand -base64 32
+  ```
+
+### Bước 2 — Cấu hình biến môi trường
+
+**Cách A (khuyên dùng) — set env trực tiếp trên server / hosting / CI:**
+
+```bash
+DATABASE_URL=postgresql://...
+JWT_SECRET=<openssl-output>
+JWT_EXPIRES_IN=7d
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=moneytalk
+R2_PUBLIC_URL=https://cdn.your-domain.com
+PORT=3000
+# SWAGGER_ENABLED=false   # mặc định đã tắt ở production
+```
+
+(Không cần set `NODE_ENV` — script `start:prod` / `db:migrate:prod` đã set `production`.)
+
+**Cách B — dùng file trên server (không commit):**
+
+```bash
+cp .env.example .env.production
+chmod 600 .env.production   # chỉ user chạy app được đọc
+# điền giá trị production vào .env.production
+```
+
+> Production **không** đọc file `.env`, nên nếu quên tạo `.env.production` / set env, app sẽ báo lỗi thay vì lỡ dùng DB của dev.
+
+### Bước 3 — Cài dependencies & build
+
+```bash
+pnpm install --frozen-lockfile
+npm run build              # output: dist/main.js
+```
+
+### Bước 4 — Migrate database production
+
+```bash
 npm run db:migrate:prod
+```
+
+> Luôn review migration trước khi chạy trên production. Không dùng `db:push` cho production.
+
+### Bước 5 — Chạy app
+
+```bash
 npm run start:prod
 ```
 
-Thiếu biến bắt buộc thì app dừng ngay khi khởi động và báo tên biến bị thiếu.
+Dùng process manager / cơ chế restart có sẵn của server hoặc hosting để giữ app chạy liên tục.
+
+### Bước 6 — Kiểm tra
+
+```bash
+curl https://<your-domain>/api/health
+```
+
+Log khởi động phải hiện `NODE_ENV=production`.
+
+### Deploy bản cập nhật
+
+```bash
+git pull
+pnpm install --frozen-lockfile
+npm run build
+npm run db:migrate:prod     # nếu có migration mới
+# restart app (npm run start:prod)
+```
+
+---
+
+## Xử lý lỗi cấu hình thường gặp
+
+| Lỗi khi khởi động | Nguyên nhân | Cách xử lý |
+| --- | --- | --- |
+| `[env:development] Cấu hình không hợp lệ: Thiếu biến ...` | Chưa tạo / thiếu biến trong `.env.development` | `cp .env.example .env.development` rồi điền |
+| `[env:production] ... Thiếu biến ...` | Chưa set env trên server hoặc chưa có `.env.production` | Xem [Setup Production — Bước 2](#bước-2--cấu-hình-biến-môi-trường) |
+| `JWT_SECRET production phải là chuỗi ngẫu nhiên >= 32 ký tự` | Secret quá ngắn hoặc đang dùng giá trị mẫu | Tạo mới bằng `openssl rand -base64 32` |
+| `NODE_ENV="..." không hợp lệ` | `NODE_ENV` khác `development` / `production` | Dùng các script `npm run start:*` |
+| Cannot find module `dist/main` | Chưa build | `npm run build` trước `start:prod` |
 
 ---
 
@@ -76,6 +202,9 @@ Thiếu biến bắt buộc thì app dừng ngay khi khởi động và báo tê
 src/
 ├── main.ts                    # Bootstrap app, global prefix /api
 ├── app.module.ts              # Root module — import feature modules ở đây
+├── config/
+│   ├── env.ts                 # Nạp + validate env theo NODE_ENV (dev/prod)
+│   └── swagger.config.ts
 ├── common/                    # Shared code dùng chung
 │   ├── constants/             # Injection tokens, constants
 │   └── types/                 # Shared TypeScript types
@@ -97,6 +226,7 @@ src/
 templates/feature-module/      # Template tạo module mới
 scripts/generate-module.mjs    # Script generate module từ template
 drizzle/                       # SQL migrations
+.env.example                   # Template env (file duy nhất được commit)
 ```
 
 ### Quy ước mỗi feature module
@@ -202,9 +332,10 @@ npm run db:migrate
 
 ## Cấu hình biến môi trường (`.env`)
 
-```bash
-cp .env.example .env.development   # production: .env.production hoặc set env trên server
-```
+Cách lấy từng giá trị bên dưới áp dụng cho cả 2 môi trường — chỉ khác nơi điền:
+
+- **Development:** `.env.development`
+- **Production:** env trên server/hosting hoặc `.env.production` (xem [Setup Production](#setup-production))
 
 ### 1. `DATABASE_URL` (Supabase)
 
@@ -333,6 +464,7 @@ Chỉ set khi Cloudflare hướng dẫn endpoint khác.
 ### Checklist env đầy đủ (dev & prod)
 
 ```env
+PORT=3000
 DATABASE_URL=...
 JWT_SECRET=...
 JWT_EXPIRES_IN=7d
@@ -342,13 +474,18 @@ R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=moneytalk
 R2_PUBLIC_URL=https://pub-xxxx.r2.dev
+
+# SWAGGER_ENABLED=true   # optional
+# R2_ENDPOINT=...        # optional
 ```
 
-Sau khi lưu file env, restart:
+| | Development | Production |
+| --- | --- | --- |
+| Điền vào | `.env.development` | Env server/hosting hoặc `.env.production` |
+| `R2_*` | Optional (thiếu thì chỉ upload lỗi) | Bắt buộc |
+| `R2_PUBLIC_URL` | `https://pub-xxxx.r2.dev` là đủ | Nên dùng custom domain |
 
-```bash
-npm run start:dev
-```
+Sau khi sửa env, restart app (`npm run start:dev` hoặc `npm run start:prod`).
 
 Test: Swagger → Authorize → `POST /api/uploads/presign` → PUT file lên `uploadUrl` → `POST /api/transactions`.
 
@@ -472,8 +609,9 @@ npm run db:migrate
 | Script | Khi nào dùng |
 | --- | --- |
 | `npm run db:generate` | Sau khi sửa schema — tạo file SQL migration |
-| `npm run db:migrate` | Apply migration lên database |
-| `npm run db:push` | Sync schema thẳng lên DB (chỉ local) |
+| `npm run db:migrate` | Apply migration lên database **dev** |
+| `npm run db:migrate:prod` | Apply migration lên database **production** |
+| `npm run db:push` | Sync schema thẳng lên DB (chỉ dev local) |
 | `npm run db:studio` | Mở GUI xem / sửa data |
 | `npm run db:pull` | Introspect DB → schema TypeScript |
 | `npm run db:check` | Kiểm tra conflict migration |
@@ -505,7 +643,13 @@ Mở file `.sql` trong `drizzle/`, kiểm tra câu lệnh.
 ### Bước 4 — Apply lên database
 
 ```bash
-npm run db:migrate
+npm run db:migrate          # database dev
+```
+
+Khi deploy, chạy trên production:
+
+```bash
+npm run db:migrate:prod     # database production
 ```
 
 ### Bước 5 — Commit
@@ -523,12 +667,14 @@ git commit -m "db: add users.phone"
 [ ] 1. Sửa src/database/schema/
 [ ] 2. npm run db:generate
 [ ] 3. Review SQL trong drizzle/
-[ ] 4. npm run db:migrate
+[ ] 4. npm run db:migrate (dev)
 [ ] 5. Commit schema + drizzle/
+[ ] 6. Khi deploy: npm run db:migrate:prod
 ```
 
 ## Lưu ý
 
-- `DATABASE_URL` không commit lên Git.
-- Không dùng `db:push` cho staging/production.
+- Không commit file `.env*` (trừ `.env.example`) và không hardcode secret trong code.
+- Dev và Prod dùng DB / `JWT_SECRET` / bucket R2 riêng.
+- Không dùng `db:push` cho production.
 - Đừng sửa tay migration đã apply trên shared DB.
