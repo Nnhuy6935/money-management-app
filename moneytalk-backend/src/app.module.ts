@@ -6,6 +6,8 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { FriendsModule } from './modules/friends/friends.module';
 import { HealthModule } from './modules/health/health.module';
+import { InsightsModule } from './modules/insights/insights.module';
+import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
@@ -21,6 +23,8 @@ import { UsersModule } from './modules/users/users.module';
     StatsModule,
     UploadsModule,
     TransactionsModule,
+    PaymentMethodsModule,
+    InsightsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -1,13 +1,9 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../common/constants/injection-tokens';
 import { UserRole } from '../../common/constants/roles';
+import { AppException } from '../../common/exceptions';
 import { normalizeEmail } from '../../common/utils/email.util';
 import type { Database } from '../../database/database.types';
 import { usersTable, type PublicUser, type User } from '../../database/schema';
@@ -57,7 +53,7 @@ export class UsersService {
 
     const existing = await this.findByEmail(email);
     if (existing) {
-      throw new ConflictException('Email đã được sử dụng, không thể đăng ký');
+      throw AppException.emailInUse();
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -66,6 +62,7 @@ export class UsersService {
       .insert(usersTable)
       .values({
         email,
+        name: dto.name ?? null,
         passwordHash,
         role: UserRole.USER,
       })
@@ -86,7 +83,7 @@ export class UsersService {
     if (payload.email) {
       const existing = await this.findByEmail(payload.email);
       if (existing && existing.id !== id) {
-        throw new ConflictException('Email đã được sử dụng');
+        throw AppException.emailInUse();
       }
     }
 

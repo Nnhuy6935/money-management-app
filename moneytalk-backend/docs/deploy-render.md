@@ -35,7 +35,7 @@ Thời gian lần đầu: khoảng 15–30 phút.
    | --- | --- |
    | `DATABASE_URL` | Supabase — dùng **Session pooler (port `5432`)**, xem lưu ý bên dưới |
    | `JWT_SECRET` | `openssl rand -base64 32` (≥ 32 ký tự, khác dev) |
-   | `JWT_EXPIRES_IN` | vd `7d` |
+   | `JWT_EXPIRES_IN` | vd `1h` (access token; client dùng `/api/auth/refresh`) |
    | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` | Cloudflare R2 — xem [README mục 3](../README.md#3-cloudflare-r2-upload-ảnh) |
 
 > **Vì sao dùng Session pooler `5432`:** Supabase → **Connect** → chọn **Session pooler**. URL dạng
@@ -78,7 +78,8 @@ Cùng trang tạo service, mục **Environment Variables** → **Add Environment
 NODE_VERSION=24
 DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
 JWT_SECRET=<openssl rand -base64 32>
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN_DAYS=30
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...

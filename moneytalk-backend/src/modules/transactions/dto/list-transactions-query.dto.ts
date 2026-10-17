@@ -12,10 +12,13 @@ import {
 import { TransactionFlow } from '../../../common/constants/transaction.constants';
 import { UUID_EXAMPLE } from '../../../common/constants/swagger.constants';
 
+/** Đủ để tải 1 tháng trong 1 lần gọi (M-03). */
+export const MAX_TRANSACTIONS_PAGE_LIMIT = 500;
+
 export class ListTransactionsQueryDto {
   @ApiPropertyOptional({
     example: '2026-08-23',
-    description: 'Lọc theo 1 ngày (giờ Việt Nam UTC+7)',
+    description: 'Lọc theo 1 ngày theo `spentAt` (giờ Việt Nam UTC+7)',
   })
   @IsOptional()
   @IsDateString()
@@ -23,7 +26,7 @@ export class ListTransactionsQueryDto {
 
   @ApiPropertyOptional({
     example: '2026-08-01',
-    description: 'Từ ngày (dùng cùng `to`)',
+    description: 'Từ ngày, theo `spentAt` giờ VN (dùng cùng `to`)',
   })
   @IsOptional()
   @IsDateString()
@@ -31,7 +34,7 @@ export class ListTransactionsQueryDto {
 
   @ApiPropertyOptional({
     example: '2026-08-31',
-    description: 'Đến ngày (dùng cùng `from`)',
+    description: 'Đến ngày, **bao gồm** cả ngày này (dùng cùng `from`)',
   })
   @IsOptional()
   @IsDateString()
@@ -58,11 +61,15 @@ export class ListTransactionsQueryDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ example: 20, default: 20, maximum: 100 })
+  @ApiPropertyOptional({
+    example: 20,
+    default: 20,
+    maximum: MAX_TRANSACTIONS_PAGE_LIMIT,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(MAX_TRANSACTIONS_PAGE_LIMIT)
   limit?: number = 20;
 }

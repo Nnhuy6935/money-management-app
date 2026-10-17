@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { UsersModule } from '../users/users.module';
+import { JWT_EXPIRES_IN } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
@@ -13,7 +14,7 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.register({
       secret: process.env.JWT_SECRET!,
       signOptions: {
-        expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as `${number}d`,
+        expiresIn: JWT_EXPIRES_IN as `${number}h`,
       },
     }),
   ],

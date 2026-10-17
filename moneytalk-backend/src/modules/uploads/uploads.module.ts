@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { R2_CONFIG, type R2Config } from './uploads.constants';
+import { UploadsCleanupService } from './uploads-cleanup.service';
 import { UploadsController } from './uploads.controller';
 import { UploadsService } from './uploads.service';
 
@@ -46,6 +47,7 @@ function loadR2Config(): R2Config {
       useFactory: loadR2Config,
     },
     UploadsService,
+    UploadsCleanupService,
   ],
   exports: [UploadsService],
 })

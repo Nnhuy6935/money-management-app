@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  integer,
   pgTable,
+  text,
   timestamp,
   uniqueIndex,
   uuid,
@@ -21,7 +23,14 @@ export const transactionTypesTable = pgTable(
     name: varchar({ length: 100 }).notNull(),
     flow: transactionFlowEnum('flow').notNull(),
     isDefault: boolean('is_default').notNull().default(false),
+    description: text(),
+    iconKey: varchar('icon_key', { length: 50 }).notNull().default('other'),
+    color: varchar({ length: 7 }).notNull().default('#7F96B0'),
+    sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
   },

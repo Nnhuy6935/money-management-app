@@ -17,6 +17,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { DRIZZLE } from '../../common/constants/injection-tokens';
+import { AppException } from '../../common/exceptions';
+import type { Database } from '../../database/database.types';
+import { pendingUploadsTable } from '../../database/schema';
 import type { R2Config } from './uploads.constants';
 import {
   ALLOWED_IMAGE_MIME_TYPES,
@@ -40,7 +44,10 @@ export class UploadsService implements OnModuleInit {
   private readonly logger = new Logger(UploadsService.name);
   private client!: S3Client;
 
-  constructor(@Inject(R2_CONFIG) private readonly config: R2Config) {}
+  constructor(
+    @Inject(R2_CONFIG) private readonly config: R2Config,
+    @Inject(DRIZZLE) private readonly db: Database,
+  ) {}
 
   onModuleInit() {
     this.client = new S3Client({
@@ -77,6 +84,8 @@ export class UploadsService implements OnModuleInit {
       throw new InternalServerErrorException('Upload ảnh thất bại');
     }
 
+    await this.trackPending(userId, key);
+
     const publicUrl = this.buildPublicUrl(key);
 
     return {
@@ -108,6 +117,8 @@ export class UploadsService implements OnModuleInit {
         }),
         { expiresIn: PRESIGN_EXPIRES_IN_SECONDS },
       );
+
+      await this.trackPending(userId, key);
 
       const publicUrl = this.buildPublicUrl(key);
 
@@ -156,7 +167,7 @@ export class UploadsService implements OnModuleInit {
     const key = this.extractKeyFromUrl(imageUrl);
 
     if (!key.startsWith(`transactions/${userId}/`)) {
-      throw new ForbiddenException('Ảnh không thuộc về bạn');
+      throw AppException.invalidImage('Ảnh không thuộc về bạn');
     }
 
     try {
@@ -168,13 +179,13 @@ export class UploadsService implements OnModuleInit {
       );
 
       if (!head.ContentType || head.ContentLength === undefined) {
-        throw new NotFoundException('Không đọc được metadata ảnh trên R2');
+        throw AppException.invalidImage('Không đọc được metadata ảnh trên R2');
       }
 
       assertAllowedR2ContentType(head.ContentType);
 
       if (head.ContentLength > MAX_IMAGE_SIZE_BYTES) {
-        throw new BadRequestException(
+        throw AppException.invalidImage(
           `File quá lớn. Tối đa ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB`,
         );
       }
@@ -195,8 +206,18 @@ export class UploadsService implements OnModuleInit {
       }
 
       this.logger.error('Head object from R2 failed', error);
-      throw new NotFoundException('Ảnh không tồn tại hoặc URL không hợp lệ');
+      throw AppException.invalidImage(
+        'Ảnh không tồn tại hoặc URL không hợp lệ',
+      );
     }
+  }
+
+  /** NF-4: ghi nhận ảnh chưa gắn vào giao dịch để dọn nếu bị bỏ rơi. */
+  private async trackPending(userId: string, key: string) {
+    await this.db
+      .insert(pendingUploadsTable)
+      .values({ key, userId })
+      .onConflictDoNothing();
   }
 
   private extractKeyFromUrl(imageUrl: string): string {
@@ -206,12 +227,12 @@ export class UploadsService implements OnModuleInit {
     try {
       parsed = new URL(imageUrl);
     } catch {
-      throw new BadRequestException('URL ảnh không hợp lệ');
+      throw AppException.invalidImage('URL ảnh không hợp lệ');
     }
 
     const baseUrl = new URL(base);
     if (parsed.origin !== baseUrl.origin) {
-      throw new BadRequestException('URL ảnh không thuộc hệ thống lưu trữ');
+      throw AppException.invalidImage('URL ảnh không thuộc hệ thống lưu trữ');
     }
 
     const basePath = baseUrl.pathname.replace(/\/$/, '');
@@ -219,7 +240,7 @@ export class UploadsService implements OnModuleInit {
 
     if (basePath && basePath !== '/') {
       if (!parsed.pathname.startsWith(`${basePath}/`)) {
-        throw new BadRequestException('URL ảnh không hợp lệ');
+        throw AppException.invalidImage('URL ảnh không hợp lệ');
       }
 
       return parsed.pathname.slice(basePath.length + 1);

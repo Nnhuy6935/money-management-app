@@ -1,22 +1,40 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, gte, lte, SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, lte, SQL, sql } from 'drizzle-orm';
 import { AppException } from '../../common/exceptions';
 import { DRIZZLE } from '../../common/constants/injection-tokens';
-import { UserRole } from '../../common/constants/roles';
 import {
   getDateRangeInUtc,
   getDayRangeInUtc,
 } from '../../common/utils/date.util';
 import type { Database } from '../../database/database.types';
 import {
+  paymentMethodsTable,
+  pendingUploadsTable,
+  receiptItemsTable,
   transactionTypesTable,
   transactionsTable,
+  type PaymentMethod,
+  type Transaction,
+  type TransactionType,
 } from '../../database/schema';
+import { PaymentMethodsService } from '../payment-methods/payment-methods.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import type {
+  ReceiptItemResponseDto,
+  TransactionResponseDto,
+} from './dto/transaction-response.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { toTransactionTypeResponse } from './transaction-type.mapper';
 import { TransactionTypesService } from './transaction-types.service';
+
+type TransactionRow = {
+  transaction: Transaction;
+  type: TransactionType | null;
+  paymentMethod: PaymentMethod | null;
+  hasReceiptItems: boolean;
+};
 
 @Injectable()
 export class TransactionsService {
@@ -24,11 +42,15 @@ export class TransactionsService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly uploadsService: UploadsService,
     private readonly transactionTypesService: TransactionTypesService,
+    private readonly paymentMethodsService: PaymentMethodsService,
   ) {}
 
   async create(userId: string, dto: CreateTransactionDto) {
     const typeId = dto.typeId ?? null;
+    const paymentMethodId = dto.paymentMethodId ?? null;
+    const receiptItems = dto.receiptItems ?? [];
 
+    // S-01 rule 4: mọi id tham chiếu phải là mặc định hoặc của user
     if (typeId !== null) {
       await this.transactionTypesService.assertTypeAllowed(
         typeId,
@@ -37,63 +59,116 @@ export class TransactionsService {
       );
     }
 
+    if (paymentMethodId !== null) {
+      await this.paymentMethodsService.assertPaymentMethodAllowed(
+        paymentMethodId,
+        userId,
+      );
+    }
+
+    const itemTypeIds = new Set(
+      receiptItems
+        .map((item) => item.typeId)
+        .filter((id): id is string => !!id),
+    );
+    for (const itemTypeId of itemTypeIds) {
+      await this.transactionTypesService.assertTypeAllowed(
+        itemTypeId,
+        dto.flow,
+        userId,
+      );
+    }
+
+    // S-01 rule 5: ảnh phải do chính user upload
     const upload = await this.uploadsService.resolveUploadedImage(
       userId,
       dto.imageUrl,
     );
 
-    const [transaction] = await this.db
-      .insert(transactionsTable)
-      .values({
-        userId,
-        typeId,
-        flow: dto.flow,
-        amount: dto.amount.toFixed(2),
-        description: dto.description,
-        imageKey: upload.key,
-        imageUrl: upload.url,
-        contentType: upload.contentType,
-        fileSize: upload.size,
-      })
-      .returning();
+    const transactionId = await this.db.transaction(async (tx) => {
+      const [transaction] = await tx
+        .insert(transactionsTable)
+        .values({
+          userId,
+          typeId,
+          paymentMethodId,
+          flow: dto.flow,
+          amount: dto.amount,
+          description: dto.description ?? null,
+          spentAt: new Date(dto.spentAt),
+          imageKey: upload.key,
+          imageUrl: upload.url,
+          contentType: upload.contentType,
+          fileSize: upload.size,
+        })
+        .returning({ id: transactionsTable.id });
 
-    return this.findOneForUser(userId, transaction.id);
+      // Ảnh đã được dùng → không còn là ảnh chờ dọn (NF-4)
+      await tx
+        .delete(pendingUploadsTable)
+        .where(
+          and(
+            eq(pendingUploadsTable.key, upload.key),
+            eq(pendingUploadsTable.userId, userId),
+          ),
+        );
+
+      if (receiptItems.length) {
+        await tx.insert(receiptItemsTable).values(
+          receiptItems.map((item, position) => ({
+            transactionId: transaction.id,
+            name: item.name,
+            amount: item.amount ?? null,
+            typeId: item.typeId ?? null,
+            position,
+          })),
+        );
+      }
+
+      return transaction.id;
+    });
+
+    return this.findOneForUser(userId, transactionId);
   }
 
   async findMine(userId: string, query: ListTransactionsQueryDto) {
-    return this.findByUserId(userId, userId, UserRole.USER, query);
+    return this.findByUserId(userId, query);
   }
 
-  async findByUser(
-    requesterId: string,
-    requesterRole: UserRole,
-    targetUserId: string,
-    query: ListTransactionsQueryDto,
-  ) {
-    return this.findByUserId(requesterId, targetUserId, requesterRole, query);
+  /** Chỉ admin (RolesGuard kiểm tra ở controller). */
+  async findByUser(targetUserId: string, query: ListTransactionsQueryDto) {
+    return this.findByUserId(targetUserId, query);
   }
 
-  async findOneForUser(userId: string, id: string) {
-    const rows = await this.db
-      .select({
-        transaction: transactionsTable,
-        type: transactionTypesTable,
-      })
-      .from(transactionsTable)
-      .leftJoin(
-        transactionTypesTable,
-        eq(transactionsTable.typeId, transactionTypesTable.id),
-      )
-      .where(
-        and(eq(transactionsTable.id, id), eq(transactionsTable.userId, userId)),
-      );
+  async findOneForUser(
+    userId: string,
+    id: string,
+  ): Promise<TransactionResponseDto> {
+    const [row] = await this.selectRows().where(
+      and(eq(transactionsTable.id, id), eq(transactionsTable.userId, userId)),
+    );
 
-    const row = rows[0];
     if (!row) {
       throw AppException.transactionNotFound(id);
     }
 
-    return this.toResponse(row.transaction, row.type);
+    const items = row.hasReceiptItems
+      ? await this.db
+          .select()
+          .from(receiptItemsTable)
+          .where(eq(receiptItemsTable.transactionId, id))
+          .orderBy(asc(receiptItemsTable.position))
+      : [];
+
+    return {
+      ...this.toResponse(row),
+      receiptItems: items.map((item): ReceiptItemResponseDto => ({
+        id: item.id,
+        name: item.name,
+        amount: item.amount,
+        typeId: item.typeId,
+      })),
+    };
   }
 
   async update(userId: string, id: string, dto: UpdateTransactionDto) {
@@ -110,10 +185,10 @@ export class TransactionsService {
       );
     }
 
-    const [updated] = await this.db
+    await this.db
       .update(transactionsTable)
       .set({
-        ...(dto.amount !== undefined ? { amount: dto.amount.toFixed(2) } : {}),
+        ...(dto.amount !== undefined ? { amount: dto.amount } : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }
           : {}),
@@ -123,17 +198,17 @@ export class TransactionsService {
       })
       .where(
         and(eq(transactionsTable.id, id), eq(transactionsTable.userId, userId)),
-      )
-      .returning();
+      );
 
-    return this.findOneForUser(userId, updated.id);
+    return this.findOneForUser(userId, id);
   }
 
   async remove(userId: string, id: string) {
-    const transaction = await this.findOneForUser(userId, id);
+    const transaction = await this.requireOwnedTransaction(userId, id);
 
     await this.uploadsService.deleteObject(userId, transaction.imageKey);
 
+    // receipt_items xoá theo ON DELETE CASCADE
     await this.db
       .delete(transactionsTable)
       .where(
@@ -144,15 +219,9 @@ export class TransactionsService {
   }
 
   private async findByUserId(
-    requesterId: string,
     targetUserId: string,
-    requesterRole: UserRole,
     query: ListTransactionsQueryDto,
   ) {
-    if (requesterRole !== UserRole.ADMIN && requesterId !== targetUserId) {
-      throw AppException.transactionAccessDenied();
-    }
-
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const offset = (page - 1) * limit;
@@ -169,12 +238,12 @@ export class TransactionsService {
 
     if (query.date) {
       const { start, end } = getDayRangeInUtc(query.date);
-      filters.push(gte(transactionsTable.createdAt, start));
-      filters.push(lte(transactionsTable.createdAt, end));
+      filters.push(gte(transactionsTable.spentAt, start));
+      filters.push(lte(transactionsTable.spentAt, end));
     } else if (query.from && query.to) {
       const { start, end } = getDateRangeInUtc(query.from, query.to);
-      filters.push(gte(transactionsTable.createdAt, start));
-      filters.push(lte(transactionsTable.createdAt, end));
+      filters.push(gte(transactionsTable.spentAt, start));
+      filters.push(lte(transactionsTable.spentAt, end));
     } else if (query.from || query.to) {
       throw AppException.transactionDateRangeRequired();
     }
@@ -186,23 +255,17 @@ export class TransactionsService {
       .from(transactionsTable)
       .where(whereClause);
 
-    const rows = await this.db
-      .select({
-        transaction: transactionsTable,
-        type: transactionTypesTable,
-      })
-      .from(transactionsTable)
-      .leftJoin(
-        transactionTypesTable,
-        eq(transactionsTable.typeId, transactionTypesTable.id),
-      )
+    const rows = await this.selectRows()
       .where(whereClause)
-      .orderBy(desc(transactionsTable.createdAt))
+      .orderBy(
+        desc(transactionsTable.spentAt),
+        desc(transactionsTable.createdAt),
+      )
       .limit(limit)
       .offset(offset);
 
     return {
-      data: rows.map((row) => this.toResponse(row.transaction, row.type)),
+      data: rows.map((row) => this.toResponse(row)),
       meta: {
         page,
         limit,
@@ -211,6 +274,26 @@ export class TransactionsService {
         ...(query.from && query.to ? { from: query.from, to: query.to } : {}),
       },
     };
+  }
+
+  private selectRows() {
+    return this.db
+      .select({
+        transaction: transactionsTable,
+        type: transactionTypesTable,
+        paymentMethod: paymentMethodsTable,
+        hasReceiptItems: sql<boolean>`exists (select 1 from ${receiptItemsTable} where ${receiptItemsTable.transactionId} = ${transactionsTable.id})`,
+      })
+      .from(transactionsTable)
+      .leftJoin(
+        transactionTypesTable,
+        eq(transactionsTable.typeId, transactionTypesTable.id),
+      )
+      .leftJoin(
+        paymentMethodsTable,
+        eq(transactionsTable.paymentMethodId, paymentMethodsTable.id),
+      )
+      .$dynamic();
   }
 
   private async requireOwnedTransaction(userId: string, id: string) {
@@ -228,24 +311,26 @@ export class TransactionsService {
     return current;
   }
 
-  private toResponse(
-    transaction: typeof transactionsTable.$inferSelect,
-    type: typeof transactionTypesTable.$inferSelect | null,
-  ) {
+  private toResponse(row: TransactionRow): TransactionResponseDto {
+    const { transaction, type, paymentMethod } = row;
+
     return {
       id: transaction.id,
       amount: transaction.amount,
       description: transaction.description,
       flow: transaction.flow,
-      type: type
+      spentAt: transaction.spentAt,
+      type: type ? toTransactionTypeResponse(type) : null,
+      paymentMethod: paymentMethod
         ? {
-            id: type.id,
-            code: type.code,
-            name: type.name,
-            flow: type.flow,
-            isDefault: type.isDefault,
+            id: paymentMethod.id,
+            code: paymentMethod.code,
+            name: paymentMethod.name,
+            iconKey: paymentMethod.iconKey,
+            color: paymentMethod.color,
           }
         : null,
+      hasReceiptItems: Boolean(row.hasReceiptItems),
       imageKey: transaction.imageKey,
       imageUrl: transaction.imageUrl,
       contentType: transaction.contentType,

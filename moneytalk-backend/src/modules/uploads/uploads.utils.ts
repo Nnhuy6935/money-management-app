@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { AppException } from '../../common/exceptions';
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   type AllowedImageMimeType,
@@ -9,19 +9,19 @@ export function assertImageFile(
   file?: Express.Multer.File,
 ): Express.Multer.File {
   if (!file) {
-    throw new BadRequestException('Thiếu file upload (field name: file)');
+    throw AppException.invalidImage('Thiếu file upload (field name: file)');
   }
 
   if (
     !ALLOWED_IMAGE_MIME_TYPES.includes(file.mimetype as AllowedImageMimeType)
   ) {
-    throw new BadRequestException(
+    throw AppException.invalidImage(
       `Định dạng không hỗ trợ. Chỉ nhận: ${ALLOWED_IMAGE_MIME_TYPES.join(', ')}`,
     );
   }
 
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    throw new BadRequestException(
+    throw AppException.invalidImage(
       `File quá lớn. Tối đa ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB`,
     );
   }
@@ -31,7 +31,7 @@ export function assertImageFile(
 
 export function assertAllowedR2ContentType(contentType: string): void {
   if (!ALLOWED_IMAGE_MIME_TYPES.includes(contentType as AllowedImageMimeType)) {
-    throw new BadRequestException(
+    throw AppException.invalidImage(
       contentType.startsWith('multipart/')
         ? 'Ảnh upload sai format (FormData). PUT binary trực tiếp lên uploadUrl, hoặc dùng POST /api/uploads/image.'
         : `File trên R2 không phải ảnh hợp lệ (${contentType}). Upload lại.`,

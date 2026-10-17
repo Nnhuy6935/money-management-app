@@ -2,4 +2,8 @@ export * from './users.schema';
 export * from './sessions.schema';
 export * from './friend-requests.schema';
 export * from './transaction-types.schema';
+export * from './payment-methods.schema';
 export * from './transactions.schema';
+export * from './receipt-items.schema';
+export * from './idempotency-keys.schema';
+export * from './pending-uploads.schema';

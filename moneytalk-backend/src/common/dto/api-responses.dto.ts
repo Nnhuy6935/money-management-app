@@ -6,7 +6,11 @@ export class UserResponseDto {
   @ApiProperty({ example: UUID_EXAMPLE, format: 'uuid' })
   id: string;
 
-  @ApiPropertyOptional({ example: 'Nguyen Van A', nullable: true })
+  @ApiPropertyOptional({
+    example: 'Nguyen Van A',
+    type: String,
+    nullable: true,
+  })
   name: string | null;
 
   @ApiProperty({ example: 'nguyenvana@gmail.com' })
@@ -22,12 +26,27 @@ export class UserResponseDto {
   updatedAt: Date;
 }
 
-export class AuthResponseDto {
+export class RefreshResponseDto {
   @ApiProperty({
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     description: 'JWT access token',
   })
   accessToken: string;
+
+  @ApiProperty({ example: 3600, description: 'Hạn access token (giây)' })
+  expiresIn: number;
+
+  @ApiProperty({
+    example: 'q3Jx…',
+    description:
+      'Refresh token (mặc định 30 ngày). Mỗi lần refresh trả token mới, token cũ hết hiệu lực.',
+  })
+  refreshToken: string;
+}
+
+export class AuthResponseDto extends RefreshResponseDto {
+  @ApiProperty({ type: UserResponseDto })
+  user: UserResponseDto;
 }
 
 export class StatsOverviewResponseDto {

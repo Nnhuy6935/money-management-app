@@ -1,9 +1,10 @@
 // Phải import đầu tiên: nạp .env theo NODE_ENV trước khi các module đọc process.env
 import { isSwaggerEnabled, loadedEnvFiles, validateEnv } from './config/env';
 import { basename } from 'node:path';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { configureApp } from './app.setup';
 import { setupSwagger } from './config/swagger.config';
 
 async function bootstrap() {
@@ -11,14 +12,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api');
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  configureApp(app);
 
   if (isSwaggerEnabled()) {
     setupSwagger(app);

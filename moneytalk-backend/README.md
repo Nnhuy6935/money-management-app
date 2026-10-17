@@ -63,7 +63,7 @@ cp .env.example .env.development
 | --- | --- | --- |
 | `DATABASE_URL` | DB dev (Supabase project dev hoặc Postgres local) | [Mục 1](#1-database_url-supabase) |
 | `JWT_SECRET` | Chuỗi bất kỳ (nên random) | [Mục 2](#2-jwt_secret--jwt_expires_in) |
-| `JWT_EXPIRES_IN` | vd `7d` | |
+| `JWT_EXPIRES_IN` | vd `1h` (access token; client dùng `/api/auth/refresh`) | |
 | `R2_*` | Bucket dev (vd `moneytalk-dev`) | [Mục 3](#3-cloudflare-r2-upload-ảnh) |
 | `PORT` | `3000` (mặc định) | |
 
@@ -124,7 +124,8 @@ Log khởi động sẽ hiện môi trường và file env đã nạp:
 ```bash
 DATABASE_URL=postgresql://...
 JWT_SECRET=<openssl-output>
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN_DAYS=30
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
@@ -327,6 +328,12 @@ npm run db:migrate
 | PATCH | `/api/friends/requests/:id/reject` | Bearer | Từ chối lời mời |
 | DELETE | `/api/friends/:userId` | Bearer | Huỷ kết bạn |
 
+### Ảnh giao dịch (upload)
+
+- **Giới hạn:** tối đa 5MB; chỉ nhận `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Sai định dạng → `400 INVALID_IMAGE`; quá dung lượng khi gửi qua `POST /api/uploads/image` → `413`.
+- **Dọn ảnh bỏ rơi:** mỗi lần upload (`/uploads/image` hoặc `/uploads/presign`) được ghi vào bảng `pending_uploads`. Khi tạo giao dịch với ảnh đó, dòng này bị xoá. Ảnh quá 24h mà chưa gắn vào giao dịch nào sẽ bị xoá khỏi R2 — job chạy khi app khởi động và mỗi giờ khi app đang thức. Tắt bằng `UPLOAD_CLEANUP_ENABLED=false` (mặc định tắt khi `NODE_ENV=test`).
+- **Quyết định D3 (2026-10-16):** ảnh giữ dạng **URL public** trên R2. Object key có dạng `transactions/<userId>/<uuid ngẫu nhiên>.<ext>` nên không đoán được; tạo giao dịch chỉ chấp nhận ảnh do chính user upload. Ai có link vẫn mở được ảnh — nếu cần chặn hẳn, phải chuyển bucket sang private và trả signed URL.
+
 ### Dùng JWT trên Swagger
 
 1. `POST /api/auth/login` (hoặc register) → copy `accessToken`
@@ -370,7 +377,8 @@ Dán kết quả vào:
 
 ```env
 JWT_SECRET=paste_openssl_output_here
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN_DAYS=30
 ```
 
 ---
@@ -472,7 +480,8 @@ Chỉ set khi Cloudflare hướng dẫn endpoint khác.
 PORT=3000
 DATABASE_URL=...
 JWT_SECRET=...
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN_DAYS=30
 
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
