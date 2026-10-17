@@ -117,6 +117,21 @@ export class CreateTransactionDto {
   typeId?: string | null;
 
   @ApiPropertyOptional({
+    example: null,
+    nullable: true,
+    type: String,
+    format: 'uuid',
+    description:
+      'null / bỏ trống = giao dịch cá nhân. Có giá trị = giao dịch của nhóm đó (phải là thành viên nhóm ACTIVE). ' +
+      'Không đổi được sau khi tạo.',
+  })
+  @IsOptional()
+  @Transform(toNullableUuid)
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  groupId?: string | null;
+
+  @ApiPropertyOptional({
     example: UUID_EXAMPLE,
     nullable: true,
     type: String,

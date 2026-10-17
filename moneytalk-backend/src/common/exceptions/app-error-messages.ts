@@ -38,6 +38,31 @@ export const AppErrorMessages = {
     fallbackMissing:
       'Không tìm thấy phương thức "cash" để chuyển giao dịch sang',
   },
+  user: {
+    inviteIdNotFound: 'Không tìm thấy người dùng với mã mời này',
+    rateLimited: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút',
+  },
+  group: {
+    notFound: (id: string) => `Nhóm #${id} không tồn tại`,
+    archived: 'Nhóm đã giải tán',
+    ownerOnly: 'Chỉ chủ nhóm mới được thực hiện thao tác này',
+    ownerCannotLeave:
+      'Chủ nhóm không thể rời nhóm. Hãy chuyển quyền sở hữu hoặc giải tán nhóm.',
+    memberNotFound: 'Người này không phải thành viên của nhóm',
+    cannotRemoveOwner: 'Không thể xoá chủ nhóm khỏi nhóm',
+    transferToSelf: 'Bạn đã là chủ nhóm',
+    alreadyMember: 'Người này đã là thành viên của nhóm',
+    inviteSelf: 'Không thể mời chính mình',
+    transactionNotCreator:
+      'Chỉ người tạo giao dịch mới được sửa hoặc xoá giao dịch này',
+  },
+  invitation: {
+    notFound: (id: string) => `Lời mời #${id} không tồn tại`,
+    accessDenied: 'Bạn không có quyền xử lý lời mời này',
+    alreadyPending: 'Đã có lời mời đang chờ cho người này',
+    notPending: 'Lời mời đã được xử lý',
+    expired: 'Lời mời đã hết hạn',
+  },
   friend: {
     cannotAddSelf: 'Không thể gửi lời mời kết bạn cho chính mình',
     userNotFound: (id: string) => `User #${id} không tồn tại`,

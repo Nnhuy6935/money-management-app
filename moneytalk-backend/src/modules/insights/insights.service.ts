@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, gte, lt, SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNull, lt, SQL, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../common/constants/injection-tokens';
 import { TransactionFlow } from '../../common/constants/transaction.constants';
 import {
@@ -37,7 +37,9 @@ export class InsightsService {
 
     const inPeriod = (bounds: { start: string; end: string }): SQL =>
       and(
+        // Chỉ giao dịch cá nhân — không cộng giao dịch nhóm
         eq(transactionsTable.userId, userId),
+        isNull(transactionsTable.groupId),
         gte(transactionsTable.spentAt, startOfVnDay(bounds.start)),
         lt(transactionsTable.spentAt, startOfVnDay(bounds.end)),
       )!;

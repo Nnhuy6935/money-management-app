@@ -1,6 +1,7 @@
 export * from './users.schema';
 export * from './sessions.schema';
 export * from './friend-requests.schema';
+export * from './groups.schema';
 export * from './transaction-types.schema';
 export * from './payment-methods.schema';
 export * from './transactions.schema';

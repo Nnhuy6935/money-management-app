@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,6 +18,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { UserResponseDto } from '../../common/dto/api-responses.dto';
@@ -26,8 +28,17 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthUser } from '../../common/types/auth.types';
+import { AppException } from '../../common/exceptions';
+import { FixedWindowRateLimiter } from '../../common/utils/rate-limiter.util';
+import {
+  LookupUserQueryDto,
+  UserLookupResponseDto,
+} from './dto/lookup-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
+
+/** Hạn chế dò mã mời hàng loạt. */
+const lookupLimiter = new FixedWindowRateLimiter(20, 60_000);
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -44,6 +55,26 @@ export class UsersController {
   @ApiForbiddenResponse()
   findAll() {
     return this.usersService.findAll();
+  }
+
+  // Phải khai báo trước GET :id để "lookup" không bị coi là id
+  @Get('lookup')
+  @ApiOperation({
+    summary: 'Tìm user bằng mã mời (inviteId)',
+    description:
+      'Chỉ trả inviteId và tên hiển thị. Giới hạn 20 lần/phút mỗi user (vượt → 429 RATE_LIMITED).',
+  })
+  @ApiOkResponse({ type: UserLookupResponseDto })
+  @ApiNotFoundResponse({ description: 'USER_NOT_FOUND' })
+  @ApiTooManyRequestsResponse({ description: 'RATE_LIMITED' })
+  lookup(
+    @Query() query: LookupUserQueryDto,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    if (!lookupLimiter.consume(currentUser.id)) {
+      throw AppException.rateLimited();
+    }
+    return this.usersService.lookupByInviteId(query.inviteId);
   }
 
   @Get(':id')

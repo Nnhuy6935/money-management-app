@@ -54,7 +54,10 @@ export function setupSwagger(app: INestApplication) {
     .addTag('transaction-types', 'Loại giao dịch (food, shopping, …)')
     .addTag('transactions', 'Giao dịch thu/chi')
     .addTag('payment-methods', 'Phương thức thanh toán')
-    .addTag('insights', 'Thống kê chi tiêu của tôi')
+    .addTag('insights', 'Thống kê chi tiêu cá nhân')
+    .addTag('groups', 'Nhóm & thành viên')
+    .addTag('group-invitations', 'Lời mời vào nhóm')
+    .addTag('group-transactions', 'Giao dịch của nhóm')
     .build();
 
   const document = SwaggerModule.createDocument(app as never, config, {

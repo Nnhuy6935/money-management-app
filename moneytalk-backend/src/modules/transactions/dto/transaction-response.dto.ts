@@ -5,6 +5,14 @@ import { TransactionTypeResponseDto } from './transaction-type-response.dto';
 
 export { TransactionTypeResponseDto } from './transaction-type-response.dto';
 
+export class TransactionCreatorDto {
+  @ApiProperty({ example: UUID_EXAMPLE, format: 'uuid' })
+  id: string;
+
+  @ApiProperty({ example: 'Lena', type: String, nullable: true })
+  name: string | null;
+}
+
 export class TransactionPaymentMethodDto {
   @ApiProperty({ example: UUID_EXAMPLE, format: 'uuid' })
   id: string;
@@ -56,6 +64,21 @@ export class TransactionResponseDto {
 
   @ApiProperty({ example: '2026-10-15T01:10:00.000Z' })
   spentAt: Date;
+
+  @ApiProperty({
+    example: null,
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'null = giao dịch cá nhân',
+  })
+  groupId: string | null;
+
+  @ApiProperty({
+    type: TransactionCreatorDto,
+    description: 'Người tạo giao dịch (hữu ích cho giao dịch nhóm)',
+  })
+  createdBy: TransactionCreatorDto;
 
   @ApiProperty({ type: TransactionTypeResponseDto, nullable: true })
   type: TransactionTypeResponseDto | null;

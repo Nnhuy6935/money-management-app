@@ -8,6 +8,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { groupsTable } from './groups.schema';
 import { paymentMethodsTable } from './payment-methods.schema';
 import { transactionFlowEnum } from './transaction.constants';
 import { transactionTypesTable } from './transaction-types.schema';
@@ -24,6 +25,8 @@ export const transactionsTable = pgTable(
     paymentMethodId: uuid('payment_method_id').references(
       () => paymentMethodsTable.id,
     ),
+    // null = giao dịch cá nhân; có giá trị = giao dịch của nhóm đó
+    groupId: uuid('group_id').references(() => groupsTable.id),
     flow: transactionFlowEnum('flow').notNull(),
     // VND, số nguyên
     amount: bigint({ mode: 'number' }).notNull(),
@@ -44,6 +47,7 @@ export const transactionsTable = pgTable(
   },
   (table) => [
     index('transactions_user_spent_at_idx').on(table.userId, table.spentAt),
+    index('transactions_group_spent_at_idx').on(table.groupId, table.spentAt),
   ],
 );
 

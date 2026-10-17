@@ -5,6 +5,8 @@ import {
   NotFoundException,
   UnauthorizedException,
   UnprocessableEntityException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { AppErrorCode } from './app-error-codes';
 import { AppErrorMessages } from './app-error-messages';
@@ -16,6 +18,13 @@ type ExceptionCtor = new (body: {
 
 const coded = (Ctor: ExceptionCtor, code: AppErrorCode, message: string) =>
   new Ctor({ code, message });
+
+/** Nest không có sẵn TooManyRequestsException. */
+class TooManyRequestsException extends HttpException {
+  constructor(body: { code: AppErrorCode; message: string }) {
+    super(body, HttpStatus.TOO_MANY_REQUESTS);
+  }
+}
 
 const M = AppErrorMessages;
 const C = AppErrorCode;
@@ -175,6 +184,122 @@ export class AppException {
       C.FALLBACK_PAYMENT_METHOD_MISSING,
       M.paymentMethod.fallbackMissing,
     );
+  }
+
+  static rateLimited() {
+    return coded(TooManyRequestsException, C.RATE_LIMITED, M.user.rateLimited);
+  }
+
+  static inviteIdNotFound() {
+    return coded(NotFoundException, C.USER_NOT_FOUND, M.user.inviteIdNotFound);
+  }
+
+  static transactionNotCreator() {
+    return coded(
+      ForbiddenException,
+      C.TRANSACTION_NOT_CREATOR,
+      M.group.transactionNotCreator,
+    );
+  }
+
+  static invalidGroupReference() {
+    return coded(
+      BadRequestException,
+      C.INVALID_REFERENCE,
+      'Nhóm không tồn tại hoặc bạn không phải thành viên',
+    );
+  }
+
+  static groupNotFound(id: string) {
+    return coded(NotFoundException, C.GROUP_NOT_FOUND, M.group.notFound(id));
+  }
+
+  static groupArchived() {
+    return coded(ConflictException, C.GROUP_ARCHIVED, M.group.archived);
+  }
+
+  static groupOwnerOnly() {
+    return coded(ForbiddenException, C.GROUP_OWNER_ONLY, M.group.ownerOnly);
+  }
+
+  static groupOwnerCannotLeave() {
+    return coded(
+      ConflictException,
+      C.GROUP_OWNER_CANNOT_LEAVE,
+      M.group.ownerCannotLeave,
+    );
+  }
+
+  static groupMemberNotFound() {
+    return coded(
+      NotFoundException,
+      C.GROUP_MEMBER_NOT_FOUND,
+      M.group.memberNotFound,
+    );
+  }
+
+  static groupCannotRemoveOwner() {
+    return coded(
+      BadRequestException,
+      C.GROUP_CANNOT_REMOVE_OWNER,
+      M.group.cannotRemoveOwner,
+    );
+  }
+
+  static groupTransferToSelf() {
+    return coded(
+      BadRequestException,
+      C.GROUP_TRANSFER_TO_SELF,
+      M.group.transferToSelf,
+    );
+  }
+
+  static groupAlreadyMember() {
+    return coded(
+      ConflictException,
+      C.GROUP_ALREADY_MEMBER,
+      M.group.alreadyMember,
+    );
+  }
+
+  static groupInviteSelf() {
+    return coded(BadRequestException, C.GROUP_INVITE_SELF, M.group.inviteSelf);
+  }
+
+  static invitationNotFound(id: string) {
+    return coded(
+      NotFoundException,
+      C.INVITATION_NOT_FOUND,
+      M.invitation.notFound(id),
+    );
+  }
+
+  static invitationAccessDenied() {
+    return coded(
+      ForbiddenException,
+      C.INVITATION_ACCESS_DENIED,
+      M.invitation.accessDenied,
+    );
+  }
+
+  static invitationAlreadyPending() {
+    return coded(
+      ConflictException,
+      C.INVITATION_ALREADY_PENDING,
+      M.invitation.alreadyPending,
+    );
+  }
+
+  static invitationNotPending() {
+    return coded(
+      ConflictException,
+      C.INVITATION_NOT_PENDING,
+      M.invitation.notPending,
+    );
+  }
+
+  static invitationExpired() {
+    return coded(ConflictException, C.INVITATION_EXPIRED, M.invitation.expired);
   }
 
   static friendCannotAddSelf() {

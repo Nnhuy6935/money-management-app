@@ -5,6 +5,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { FriendsModule } from './modules/friends/friends.module';
+import { GroupsModule } from './modules/groups/groups.module';
 import { HealthModule } from './modules/health/health.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
     TransactionsModule,
     PaymentMethodsModule,
     InsightsModule,
+    GroupsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

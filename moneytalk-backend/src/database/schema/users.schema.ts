@@ -12,6 +12,8 @@ export const usersTable = pgTable('users', {
   email: varchar({ length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   role: userRoleEnum('role').notNull().default(UserRole.USER),
+  // Mã mời vào nhóm — backend tự sinh, client không sửa được
+  inviteId: varchar('invite_id', { length: 16 }).notNull().unique(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

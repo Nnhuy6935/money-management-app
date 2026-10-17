@@ -19,6 +19,13 @@ export class UserResponseDto {
   @ApiProperty({ enum: UserRole, example: UserRole.USER })
   role: UserRole;
 
+  @ApiProperty({
+    example: 'SP8K4M2Q',
+    description:
+      'Mã để người khác mời bạn vào nhóm. Backend tự sinh, không đổi được.',
+  })
+  inviteId: string;
+
   @ApiProperty({ example: '2026-08-23T05:00:00.000Z' })
   createdAt: Date;
 
